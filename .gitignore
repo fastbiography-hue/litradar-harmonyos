@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.env
+
+# Backend runtime
+backend/logs/
+backend/data/pdfs/
+backend/output/
+backend/data/litradar.db
+backend/data/litradar.db-wal
+backend/data/litradar.db-shm
+
+# DevEco Studio / HarmonyOS
+.hvigor/
+.bitfun/
+oh_modules/
+node_modules/
+local.properties
+oh-package-lock.json5
+*.hap
+*.hsp
+*.har
+
+# Build outputs
+harmonyos_app/entry/build/
+harmonyos_app/build/
+
+# IDE
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Signing (contains secrets)
+**/*.p12
+**/*.p7b
+**/*.cer
+**/signingConfigs/

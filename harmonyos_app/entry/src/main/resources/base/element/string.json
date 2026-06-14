@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "module_desc", "value": "LitRadar Main Entry Module" },
+    { "name": "EntryAbility_desc", "value": "LitRadar — Biomedical Literature Radar" },
+    { "name": "EntryAbility_label", "value": "LitRadar" }
+  ]
+}

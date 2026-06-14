@@ -1,0 +1,13 @@
+biopython>=1.83
+pyeuropepmc>=0.3.0
+paperscraper>=0.2.0
+requests>=2.31.0
+aiohttp>=3.9.0
+pandas>=2.2.0
+openpyxl>=3.1.0
+pyyaml>=6.0
+tqdm>=4.66.0
+APScheduler>=3.10.0
+plyer>=2.1.0
+loguru>=0.7.0
+flask>=3.0.0

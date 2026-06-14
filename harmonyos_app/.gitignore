@@ -1,0 +1,13 @@
+/oh_modules
+/build
+/.cxx
+/.test
+/.hvigor
+/.bitfun
+local.properties
+node_modules
+oh_modules
+.vscode
+.idea
+.DS_Store
+Thumbs.db

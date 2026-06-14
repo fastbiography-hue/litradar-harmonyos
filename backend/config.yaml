@@ -1,0 +1,78 @@
+# ============================================================
+# LitRadar v2 — 融合版文献追踪系统 配置文件
+# ============================================================
+
+# NCBI 账号（可选，有 API Key 时速率提升至 10 req/s）
+ncbi_email: "your@email.com"   # 换成你的邮箱
+ncbi_api_key: ""   # 留空则从环境变量 NCBI_API_KEY 读取
+
+# Unpaywall 邮箱（免费注册，用于 OA PDF 获取）
+unpaywall_email: "researcher@example.com"
+
+# ---- 检索关键词组（支持多组独立配置）----
+queries:
+  - name: "AD_APOE"
+    query: "APOE AND Alzheimer AND (GWAS OR haplotype OR risk)"
+    sources: [pubmed, europe_pmc, biorxiv, medrxiv]
+    alert_on_new: true
+
+  - name: "longread_variant"
+    query: "long-read sequencing AND (variant calling OR haplotype phasing)"
+    sources: [pubmed, europe_pmc, biorxiv, medrxiv]
+    alert_on_new: true
+
+  - name: "metabolic_genetics"
+    query: "metabolic syndrome AND (GWAS OR polygenic risk score OR WGS)"
+    sources: [pubmed, europe_pmc, biorxiv, medrxiv]
+    alert_on_new: false
+
+# ---- 相关性评分核心词 ----
+score_keywords:
+  - "APOE"
+  - "Alzheimer"
+  - "haplotype"
+  - "long-read"
+  - "PacBio"
+  - "ONT"
+  - "variant calling"
+  - "polygenic risk"
+  - "GWAS"
+  - "WGS"
+
+# ---- 检索参数 ----
+max_results_per_source: 200
+date_from: "2020-01-01"
+fetch_citations: false        # 是否获取被引次数（较慢）
+
+# ---- 调度配置 ----
+scheduler:
+  daily_run_time: "08:00"
+  timezone: "Asia/Shanghai"
+  retry_failed_downloads: true
+
+# ---- 存储路径 ----
+storage:
+  db_path: "/tmp/litradar_v2.db"
+  pdf_dir: "data/pdfs"
+  output_dir: "output"
+  log_path: "logs/litradar.log"
+
+# ---- 通知配置 ----
+notifications:
+  email:
+    enabled: false
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    username: ""
+    password: ""                    # 留空从环境变量 LITRADAR_EMAIL_PASS 读取
+    to: "your@email.com"
+    attach_excel: true              # 是否附带 Excel 附件
+    min_score_highlight: 7          # 高亮评分阈值
+    send_even_if_no_new: false      # 无新文献时也发日报
+    max_papers_in_email: 50         # 邮件最多展示篇数
+  desktop:
+    enabled: true
+
+# ---- Excel 导出 ----
+export:
+  auto_open_excel: true
