@@ -95,11 +95,11 @@ export default struct PaperDetail {
         if (this.aiAnalysis && this.aiAnalysis.researchQuestion) {
           Text('🤖 AI 解析').fontSize(12).fontWeight(FontWeight.Bold).fontColor('#2F5496').margin({ bottom: 6 })
           Column() {
-            InfoRow('研究问题', this.aiAnalysis!.researchQuestion)
-            InfoRow('方法', this.aiAnalysis!.methods)
-            InfoRow('主要发现', this.aiAnalysis!.mainFindings)
-            InfoRow('局限性', this.aiAnalysis!.limitations)
-            InfoRow('临床价值', this.aiAnalysis!.clinicalValue)
+            InfoRow({ label: '研究问题', value: this.aiAnalysis!.researchQuestion })
+            InfoRow({ label: '方法', value: this.aiAnalysis!.methods })
+            InfoRow({ label: '主要发现', value: this.aiAnalysis!.mainFindings })
+            InfoRow({ label: '局限性', value: this.aiAnalysis!.limitations })
+            InfoRow({ label: '临床价值', value: this.aiAnalysis!.clinicalValue })
           }.padding(12).backgroundColor('#F0F4FF').borderRadius(8).width('100%').margin({ bottom: 10 })
         }
 
@@ -107,12 +107,12 @@ export default struct PaperDetail {
 
         if (this.paper!.doi) { Text(`DOI: ${this.paper!.doi}`).fontSize(12).fontColor('#0563C1').decoration({ type: TextDecorationType.Underline }).margin({ bottom: 8 }).onClick(() => this.openDOI(this.paper!.doi)) }
 
-        InfoRow('作者', this.paper!.allAuthors)
-        InfoRow('期刊', this.paper!.journal)
-        InfoRow('发表时间', this.paper!.pubDate)
-        InfoRow('来源', this.paper!.source)
-        InfoRow('MeSH', this.paper!.meshTerms)
-        InfoRow('摘要', this.paper!.abstract)
+        InfoRow({ label: '作者', value: this.paper!.allAuthors })
+        InfoRow({ label: '期刊', value: this.paper!.journal })
+        InfoRow({ label: '发表时间', value: this.paper!.pubDate })
+        InfoRow({ label: '来源', value: this.paper!.source })
+        InfoRow({ label: 'MeSH', value: this.paper!.meshTerms })
+        InfoRow({ label: '摘要', value: this.paper!.abstract })
       }
     }.width('100%').padding(16).alignItems(HorizontalAlign.Start)
     }.width('100%').height('100%').scrollable(ScrollDirection.Vertical)
