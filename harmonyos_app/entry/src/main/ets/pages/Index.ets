@@ -1,7 +1,7 @@
 // pages/Index.ets — M2: 纯原生引擎，ConfigService + FetchEngine + ScoreEngine
 import { Paper, QueryConfig } from '../model/PaperModel'
 import { upsertPapers, queryPapers } from '../service/DbService'
-import { initDefaults, getAllProfiles } from '../service/ConfigService'
+import { init, initDefaultProfiles, getProfiles } from '../service/ConfigService'
 import type { QueryProfile } from '../models/QueryProfile'
 import { fetchAll } from '../engine/FetchEngine'
 import { deduplicatePapers, scorePapers } from '../engine/ScoreEngine'
@@ -33,8 +33,9 @@ struct Index {
 
   async aboutToAppear(): Promise<void> {
     try {
-      await initDefaults(this.context)
-      this.profiles = await getAllProfiles(this.context)
+      await init(this.context)
+      await initDefaultProfiles()
+      this.profiles = await getProfiles()
       this.loadQueriesFromProfiles()
       this.papers = await queryPapers(this.context, null, 200)
       this.computeStats()

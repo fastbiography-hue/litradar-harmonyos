@@ -9,96 +9,145 @@ const KEY_PROFILES = 'query_profiles'
 const KEY_INITIALIZED = 'config_initialized'
 
 let _prefs: dataPreferences.Preferences | null = null
+let _context: common.Context | null = null
 
-async function getPrefs(context: common.Context): Promise<dataPreferences.Preferences> {
-  if (_prefs) return _prefs
+/**
+ * 初始化 ConfigService。必须在 App 启动时调用一次。
+ */
+export async function init(context: common.Context): Promise<void> {
+  _context = context
   _prefs = await dataPreferences.getPreferences(context, PREFERENCES_NAME)
+}
+
+function ensureContext(): common.Context {
+  if (!_context) {
+    throw new Error('ConfigService not initialized. Call init(context) first.')
+  }
+  return _context
+}
+
+async function getPrefs(): Promise<dataPreferences.Preferences> {
+  if (_prefs) return _prefs
+  const ctx = ensureContext()
+  _prefs = await dataPreferences.getPreferences(ctx, PREFERENCES_NAME)
   return _prefs
+}
+
+function now(): number {
+  return Date.now()
 }
 
 /**
  * 首次启动时写入默认 profiles。幂等，已有数据不覆盖。
  */
-export async function initDefaults(context: common.Context): Promise<void> {
+export async function initDefaultProfiles(): Promise<void> {
   try {
-    const prefs = await getPrefs(context)
+    const prefs = await getPrefs()
     const initialized = await prefs.get(KEY_INITIALIZED, false) as boolean
     if (!initialized) {
-      const now = new Date().toISOString()
-      const defaults: QueryProfile[] = DEFAULT_PROFILES.map((p: QueryProfile): QueryProfile => ({
+      const profiles: QueryProfile[] = DEFAULT_PROFILES.map((p: QueryProfile): QueryProfile => ({
         ...p,
-        createdAt: now,
-        updatedAt: now
+        createdAt: now(),
+        updatedAt: now()
       }))
-      await prefs.put(KEY_PROFILES, JSON.stringify(defaults))
+      await prefs.put(KEY_PROFILES, JSON.stringify(profiles))
       await prefs.put(KEY_INITIALIZED, true)
       await prefs.flush()
     }
   } catch (e) {
-    console.error('[ConfigService] initDefaults failed:', (e as Error).message)
+    console.error('[ConfigService] initDefaultProfiles failed:', (e as Error).message)
   }
 }
 
 /**
  * 读取所有 query profiles
  */
-export async function getAllProfiles(context: common.Context): Promise<QueryProfile[]> {
+export async function getProfiles(): Promise<QueryProfile[]> {
   try {
-    const prefs = await getPrefs(context)
+    const prefs = await getPrefs()
     const raw = await prefs.get(KEY_PROFILES, '') as string
     if (raw && raw !== '') {
       return JSON.parse(raw) as QueryProfile[]
     }
   } catch (e) {
-    console.error('[ConfigService] getAllProfiles failed:', (e as Error).message)
+    console.error('[ConfigService] getProfiles failed:', (e as Error).message)
   }
   return DEFAULT_PROFILES
 }
 
 /**
+ * 读取所有启用的 query profiles
+ */
+export async function getEnabledProfiles(): Promise<QueryProfile[]> {
+  const all = await getProfiles()
+  return all.filter((p: QueryProfile) => p.enabled)
+}
+
+/**
  * 按 id 获取单个 profile
  */
-export async function getProfileById(context: common.Context, id: string): Promise<QueryProfile | null> {
+export async function getProfileById(id: string): Promise<QueryProfile | undefined> {
   try {
-    const profiles = await getAllProfiles(context)
-    const found = profiles.find((p: QueryProfile) => p.id === id)
-    return found || null
+    const profiles = await getProfiles()
+    return profiles.find((p: QueryProfile) => p.id === id)
   } catch (e) {
     console.error('[ConfigService] getProfileById failed:', (e as Error).message)
-    return null
+    return undefined
   }
 }
 
 /**
- * 新增或更新 profile。id 已存在则更新，不存在则追加。
+ * 新增 profile。id 已存在时报错但不崩溃。
  */
-export async function upsertProfile(context: common.Context, profile: QueryProfile): Promise<void> {
+export async function addProfile(profile: QueryProfile): Promise<void> {
   try {
-    const profiles = await getAllProfiles(context)
-    const idx = profiles.findIndex((p: QueryProfile) => p.id === profile.id)
-    profile.updatedAt = new Date().toISOString()
-    if (idx >= 0) {
-      profiles[idx] = profile
-    } else {
-      profile.createdAt = profile.createdAt || profile.updatedAt
-      profiles.push(profile)
+    const profiles = await getProfiles()
+    const exists = profiles.find((p: QueryProfile) => p.id === profile.id)
+    if (exists) {
+      console.error('[ConfigService] addProfile: id already exists:', profile.id)
+      return
     }
-    const prefs = await getPrefs(context)
+    const ts = now()
+    profile.createdAt = ts
+    profile.updatedAt = ts
+    profiles.push(profile)
+    const prefs = await getPrefs()
     await prefs.put(KEY_PROFILES, JSON.stringify(profiles))
     await prefs.flush()
   } catch (e) {
-    console.error('[ConfigService] upsertProfile failed:', (e as Error).message)
+    console.error('[ConfigService] addProfile failed:', (e as Error).message)
+  }
+}
+
+/**
+ * 更新已有 profile。id 不存在时 no-op。
+ */
+export async function updateProfile(profile: QueryProfile): Promise<void> {
+  try {
+    const profiles = await getProfiles()
+    const idx = profiles.findIndex((p: QueryProfile) => p.id === profile.id)
+    if (idx < 0) {
+      console.error('[ConfigService] updateProfile: id not found:', profile.id)
+      return
+    }
+    profile.updatedAt = now()
+    profiles[idx] = profile
+    const prefs = await getPrefs()
+    await prefs.put(KEY_PROFILES, JSON.stringify(profiles))
+    await prefs.flush()
+  } catch (e) {
+    console.error('[ConfigService] updateProfile failed:', (e as Error).message)
   }
 }
 
 /**
  * 删除 profile。id 不存在时 no-op。
  */
-export async function deleteProfile(context: common.Context, id: string): Promise<void> {
+export async function deleteProfile(id: string): Promise<void> {
   try {
-    const profiles = await getAllProfiles(context)
+    const profiles = await getProfiles()
     const filtered = profiles.filter((p: QueryProfile) => p.id !== id)
-    const prefs = await getPrefs(context)
+    const prefs = await getPrefs()
     await prefs.put(KEY_PROFILES, JSON.stringify(filtered))
     await prefs.flush()
   } catch (e) {
@@ -107,20 +156,20 @@ export async function deleteProfile(context: common.Context, id: string): Promis
 }
 
 /**
- * 恢复默认 profiles，删除所有自定义
+ * 恢复默认 profiles，删除所有自定义。
  */
-export async function restoreDefaults(context: common.Context): Promise<void> {
+export async function resetDefaultProfiles(): Promise<void> {
   try {
-    const now = new Date().toISOString()
+    const ts = now()
     const defaults: QueryProfile[] = DEFAULT_PROFILES.map((p: QueryProfile): QueryProfile => ({
       ...p,
-      createdAt: now,
-      updatedAt: now
+      createdAt: ts,
+      updatedAt: ts
     }))
-    const prefs = await getPrefs(context)
+    const prefs = await getPrefs()
     await prefs.put(KEY_PROFILES, JSON.stringify(defaults))
     await prefs.flush()
   } catch (e) {
-    console.error('[ConfigService] restoreDefaults failed:', (e as Error).message)
+    console.error('[ConfigService] resetDefaultProfiles failed:', (e as Error).message)
   }
 }
