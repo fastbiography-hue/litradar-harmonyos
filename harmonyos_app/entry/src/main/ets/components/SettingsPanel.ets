@@ -10,7 +10,7 @@ export default struct SettingsPanel {
   @State selectedProvider: string = 'deepseek'
   @State apiKey: string = ''
   @State model: string = ''
-  @State enabled: boolean = false
+  @State isEnabled: boolean = false
   private context: common.UIAbilityContext = getContext(this) as common.UIAbilityContext
 
   async aboutToAppear(): Promise<void> {
@@ -30,7 +30,7 @@ export default struct SettingsPanel {
       this.selectedProvider = ep.provider
       this.apiKey = ep.apiKey
       this.model = ep.model
-      this.enabled = ep.enabled
+      this.isEnabled = ep.enabled
     }
   }
 
@@ -47,10 +47,10 @@ export default struct SettingsPanel {
     if (existing) {
       this.apiKey = existing.apiKey
       this.model = existing.model
-      this.enabled = existing.enabled
+      this.isEnabled = existing.enabled
     } else {
       this.apiKey = ''
-      this.enabled = false
+      this.isEnabled = false
     }
   }
 
@@ -67,7 +67,7 @@ export default struct SettingsPanel {
       model: this.model || info.defaultModel,
       apiKey: this.apiKey,
       baseUrl: info.defaultBaseUrl,
-      enabled: this.enabled,
+      enabled: this.isEnabled,
       createdAt: 0,
       updatedAt: Date.now()
     }
@@ -78,7 +78,7 @@ export default struct SettingsPanel {
     } else {
       await saveProvider(config)
     }
-    promptAction.showToast({ message: `${info.name} 配置已保存${this.enabled ? '并启用' : ''}`, duration: 2000 })
+    promptAction.showToast({ message: `${info.name} 配置已保存${this.isEnabled ? '并启用' : ''}`, duration: 2000 })
     await this.loadProviders()
   }
 
@@ -114,8 +114,8 @@ export default struct SettingsPanel {
 
         Row() {
           Text('启用此 Provider').fontSize(13).layoutWeight(1)
-          Toggle({ type: ToggleType.Switch, isOn: this.enabled })
-            .onChange((on: boolean) => { this.enabled = on })
+          Toggle({ type: ToggleType.Switch, isOn: this.isEnabled })
+            .onChange((on: boolean) => { this.isEnabled = on })
         }.width('100%').margin({ bottom: 16 })
 
         Button('保存配置')

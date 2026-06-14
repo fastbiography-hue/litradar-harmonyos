@@ -2,8 +2,8 @@
 import { Paper } from '../model/PaperModel'
 import common from '@ohos.app.ability.common'
 import Want from '@ohos.app.ability.Want'
-import { parseAbstract } from '../engine/AbstractParser'
-import { formatCitation, getSupportedFormats } from '../engine/CitationExportEngine'
+import { parseAbstract } from '../engines/AbstractParser'
+import { formatCitation, getSupportedFormats } from '../engines/CitationExportEngine'
 import type { AbstractAnalysis } from '../models/AbstractAnalysisModel'
 import promptAction from '@ohos.promptAction'
 

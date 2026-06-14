@@ -112,6 +112,7 @@ struct Index {
   }
 
   build() {
+    Stack() {
     Column() {
       TopToolbar({
         statsTotal: this.stats.total, statsOA: this.stats.oa, statsHigh: this.stats.highRelevance,
@@ -147,13 +148,10 @@ struct Index {
       Stack() {
         Column().width('100%').height('100%').backgroundColor('#00000044')
           .onClick(() => { this.showSettings = false })
-        Column() {
-          SettingsPanel()
-        }
+        Column() { SettingsPanel() }
         .width(480).height('80%').backgroundColor('#FFFFFF').borderRadius(8)
         .position({ x: '50%', y: '10%' }).translate({ x: '-50%', y: 0 })
-      }
-      .width('100%').height('100%').position({ x: 0, y: 0 })
+      }.width('100%').height('100%')
     }
 
     // Overlay: Notes editor
@@ -161,23 +159,19 @@ struct Index {
       Stack() {
         Column().width('100%').height('100%').backgroundColor('#00000044')
           .onClick(() => { this.showNotes = false })
-        Column() {
-          Scroll() {
-            Column() {
-              Text('📒 知识笔记').fontSize(16).fontWeight(FontWeight.Bold).margin({ bottom: 12 })
-              TextArea({ placeholder: '使用 [[双向链接]] 引用文献...', text: '' })
-                .height(200).fontSize(13).margin({ bottom: 12 })
-                .backgroundColor('#F5F5F5').borderRadius(4)
-              Button('保存笔记').width('100%').height(36).fontSize(14)
-                .backgroundColor('#2F5496').fontColor(Color.White).borderRadius(6)
-                .onClick(() => { this.showNotes = false })
-            }.padding(20).width('100%').alignItems(HorizontalAlign.Start)
-          }
+        Scroll() {
+          Column() {
+            Text('📒 知识笔记').fontSize(16).fontWeight(FontWeight.Bold).margin({ bottom: 12 })
+            TextArea({ placeholder: '使用 [[双向链接]] 引用文献...', text: '' })
+              .height(200).fontSize(13).margin({ bottom: 12 }).backgroundColor('#F5F5F5').borderRadius(4)
+            Button('保存笔记').width('100%').height(36).fontSize(14)
+              .backgroundColor('#2F5496').fontColor(Color.White).borderRadius(6)
+              .onClick(() => { this.showNotes = false })
+          }.padding(20).width('100%').alignItems(HorizontalAlign.Start)
         }
         .width(400).height('70%').backgroundColor('#FFFFFF').borderRadius(8)
         .position({ x: '50%', y: '15%' }).translate({ x: '-50%', y: 0 })
-      }
-      .width('100%').height('100%').position({ x: 0, y: 0 })
+      }.width('100%').height('100%')
     }
 
     // Overlay: AI search translator
@@ -185,13 +179,11 @@ struct Index {
       Stack() {
         Column().width('100%').height('100%').backgroundColor('#00000044')
           .onClick(() => { this.showAiSearch = false })
-        Column() {
-          SearchTranslatorPanel()
-        }
+        Column() { SearchTranslatorPanel() }
         .width(520).height('70%').backgroundColor('#FFFFFF').borderRadius(8)
         .position({ x: '50%', y: '15%' }).translate({ x: '-50%', y: 0 })
-      }
-      .width('100%').height('100%').position({ x: 0, y: 0 })
+      }.width('100%').height('100%')
     }
+    }.width('100%').height('100%')
   }
 }

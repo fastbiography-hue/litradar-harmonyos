@@ -6,21 +6,16 @@ import { getEnabledProvider } from '../services/AiConfigService'
 
 // ── Provider request builders ────────────────────────
 
+interface MessageItem { role: string; content: string }
+interface RequestBody { model: string; max_tokens: number; messages: MessageItem[] }
+
 function buildRequestBody(provider: string, prompt: string, model: string, maxTokens?: number): string {
+  const msg: MessageItem = { role: 'user', content: prompt }
   if (provider === 'anthropic') {
-    const body: Record<string, Object> = {
-      model: model,
-      max_tokens: maxTokens || 1024,
-      messages: [{ role: 'user', content: prompt }]
-    }
+    const body: RequestBody = { model: model, max_tokens: maxTokens || 1024, messages: [msg] }
     return JSON.stringify(body)
   }
-  // OpenAI-compatible format (DeepSeek, 豆包, 通义 all use this)
-  const body: Record<string, Object> = {
-    model: model,
-    messages: [{ role: 'user', content: prompt }],
-    max_tokens: maxTokens || 1024
-  }
+  const body: RequestBody = { model: model, messages: [msg], max_tokens: maxTokens || 1024 }
   return JSON.stringify(body)
 }
 
