@@ -1,29 +1,48 @@
-# TASKS.md
+# TASKS.md — 真实状态
 
 ## 状态
-`completed` / `in_progress` / `pending` / `planned`
+`done` / `partial` / `missing` / `planned`
 
-## M2 P0
-| 任务 | 名称 | 状态 |
-|------|------|:--:|
-| M2-T01 | ScoreEngine | completed |
-| M2-T03 | ConfigService | completed |
-| M2-T02 | FetchEngine | completed |
-| M2-T04 | NativeRunFlow | completed |
-| M2-FINAL | Acceptance | completed |
+## M2 (消灭后端)
+| 任务 | 状态 |
+|------|:--:|
+| ConfigService 本地配置 | done |
+| FetchEngine PubMed+Europe PMC | done |
+| ScoreEngine 去重+评分 | done |
+| NativeRunFlow 原生抓取 | done |
+| 自由搜索 | done |
+| 检索策略管理 (增删改) | done |
+| 空/加载/错误状态 | done |
 
-## M3 P0
-| 任务 | 名称 | 状态 |
-|------|------|:--:|
-| M3-T01 | AiService | completed |
-| M3-T02 | SearchTranslator | pending |
-| M3-T03 | AbstractParser | pending |
-| M3-T04 | CitationExport | pending |
-| M3-T05 | KnowledgeNotes | pending |
-| M3-T06 | LiteratureCollections | pending |
+## M3 (学术中枢)
+| 任务 | 状态 |
+|------|:--:|
+| AiService 可插拔AI | done |
+| AI Provider 设置面板 | done |
+| AI 摘要解析 | done |
+| AI 检索式生成 | done |
+| 12种引用格式导出 | done |
+| PDF 阅读 (OA+PMCID) | done |
+| 文献笔记 | partial |
+| 文献分类 Collections | partial |
+| KnowledgeNotes WikiLink | partial |
+| WeeklyDigest AI周报 | missing |
+| FulltextTranslation | missing |
+| KnowledgeGraph | missing |
 
-## M3 P1
-M3-T07 KnowledgeGraph | M3-T08 SharePanelImport | M3-T09 DesktopWidget | M3-T10 WeeklyDigest | M3-T11 FulltextTranslation
+## M4 (多端UI)
+| 任务 | 状态 |
+|------|:--:|
+| DesignSystem tokens | done |
+| TopToolbar | done |
+| DesktopShell/TabletShell/MobileShell | partial |
+| 响应式断点 | planned |
 
-## M3 P2
-M3-T12 DistributedReading | M3-T13 PenAnnotationOCR | M3-T14 SemanticScholarGraph | M3-T15 PanguLocalAI | M3-T16 ZoteroGroups
+## M5 (鸿蒙生态)
+| 任务 | 状态 |
+|------|:--:|
+| ReadingContinuation 服务 | partial |
+| ShareImport 解析器 | partial |
+| Notification 服务 | partial |
+| SendToDevice 服务 | partial |
+| Distributed/Watch/LocalAI/Backup | planned |
