@@ -223,9 +223,9 @@ export async function fetchEuropePmc(profile: QueryProfile, maxResults: number =
  * 不在这里去重、评分、写库。
  */
 export async function fetchAll(profile: QueryProfile, maxResults: number = DEFAULT_MAX): Promise<Paper[]> {
-  const [pubmedResults, epmcResults] = await Promise.all([
+  const results = await Promise.all([
     fetchPubMed(profile, maxResults).catch((): Paper[] => []),
     fetchEuropePmc(profile, maxResults).catch((): Paper[] => [])
   ])
-  return pubmedResults.concat(epmcResults)
+  return results[0].concat(results[1])
 }

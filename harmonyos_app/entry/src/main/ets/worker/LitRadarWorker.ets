@@ -1,16 +1,15 @@
 // worker/LitRadarWorker.ets
 import WorkSchedulerExtensionAbility from '@ohos.WorkSchedulerExtensionAbility'
-import { getConfig } from '../service/ConfigService'
-import { upsertPapersDB } from '../service/DbService'
+import { init, getEnabledProfiles } from '../service/ConfigService'
+import { upsertPapers } from '../service/DbService'
 import { fetchAll } from '../engine/FetchEngine'
 import { deduplicatePapers, scorePapers } from '../engine/ScoreEngine'
 import type { Paper } from '../model/PaperModel'
+import type { QueryProfile } from '../models/QueryProfile'
 
 export default class LitRadarWorker extends WorkSchedulerExtensionAbility {
   onWorkStart(workInfo: object): void {
-    this.doWork().then(() => {
-      // Work done
-    }).catch((e: Error) => {
+    this.doWork().then(() => {}).catch((e: Error) => {
       console.error('[LitRadarWorker] work failed:', e.message)
     })
   }
@@ -21,26 +20,23 @@ export default class LitRadarWorker extends WorkSchedulerExtensionAbility {
 
   private async doWork(): Promise<void> {
     try {
-      const cfg = await getConfig(this.context)
+      init(this.context)
+      const profiles: QueryProfile[] = await getEnabledProfiles()
       let allPapers: Paper[] = []
-      for (const q of cfg.queries) {
-        if (!q.alertOnNew) continue
+      for (const profile of profiles) {
+        if (!profile.enabled) continue
         try {
-          const batch = await fetchAll(q.query, q.sources, q.dateFrom, cfg.maxResultsPerSource, cfg.ncbiApiKey)
-          for (const p of batch) {
-            p.queryTag = q.name
-          }
+          const batch: Paper[] = await fetchAll(profile, 20)
           allPapers = allPapers.concat(batch)
         } catch (e) {
-          console.error(`[LitRadarWorker] fetch failed for ${q.name}:`, (e as Error).message)
+          console.error(`[LitRadarWorker] fetch failed for ${profile.name}:`, (e as Error).message)
         }
       }
       if (allPapers.length > 0) {
         allPapers = deduplicatePapers(allPapers)
-        allPapers = scorePapers(allPapers, cfg.scoreKeywords)
-        await upsertPapersDB(this.context, allPapers)
-        const highScoreCount = allPapers.filter((p: Paper) => p.relevanceScore >= 7).length
-        console.info(`[LitRadarWorker] fetched ${allPapers.length} papers, ${highScoreCount} high-score`)
+        const keywords: string[] = profiles.flatMap((p: QueryProfile) => p.keywords)
+        allPapers = scorePapers(allPapers, keywords)
+        await upsertPapers(this.context, allPapers)
       }
     } catch (e) {
       console.error('[LitRadarWorker] doWork failed:', (e as Error).message)

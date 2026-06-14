@@ -135,9 +135,9 @@ struct Index {
         onRunClick: () => this.onRunClicked()
       })
       DesktopShell({
-        sidebar: () => this.sidebarBuilder(),
-        mainContent: () => this.mainBuilder(),
-        detailPanel: () => this.detailBuilder()
+        sidebar: this.sidebarBuilder,
+        mainContent: this.mainBuilder,
+        detailPanel: this.detailBuilder
       })
     }
     .width('100%').height('100%').backgroundColor('#FFFFFF')

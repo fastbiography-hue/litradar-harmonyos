@@ -45,11 +45,10 @@ export async function initDefaultProfiles(): Promise<void> {
     const prefs = await getPrefs()
     const initialized = await prefs.get(KEY_INITIALIZED, false) as boolean
     if (!initialized) {
-      const profiles: QueryProfile[] = DEFAULT_PROFILES.map((p: QueryProfile): QueryProfile => ({
-        ...p,
-        createdAt: now(),
-        updatedAt: now()
-      }))
+      const profiles: QueryProfile[] = []
+      for (const p of DEFAULT_PROFILES) {
+        profiles.push({ id: p.id, name: p.name, enabled: p.enabled, keywords: p.keywords, pubmedQuery: p.pubmedQuery, europePmcQuery: p.europePmcQuery, createdAt: now(), updatedAt: now() })
+      }
       await prefs.put(KEY_PROFILES, JSON.stringify(profiles))
       await prefs.put(KEY_INITIALIZED, true)
       await prefs.flush()
@@ -161,11 +160,10 @@ export async function deleteProfile(id: string): Promise<void> {
 export async function resetDefaultProfiles(): Promise<void> {
   try {
     const ts = now()
-    const defaults: QueryProfile[] = DEFAULT_PROFILES.map((p: QueryProfile): QueryProfile => ({
-      ...p,
-      createdAt: ts,
-      updatedAt: ts
-    }))
+    const defaults: QueryProfile[] = []
+    for (const p of DEFAULT_PROFILES) {
+      defaults.push({ id: p.id, name: p.name, enabled: p.enabled, keywords: p.keywords, pubmedQuery: p.pubmedQuery, europePmcQuery: p.europePmcQuery, createdAt: ts, updatedAt: ts })
+    }
     const prefs = await getPrefs()
     await prefs.put(KEY_PROFILES, JSON.stringify(defaults))
     await prefs.flush()
