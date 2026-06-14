@@ -85,7 +85,8 @@ export default struct SettingsPanel {
   build() {
     Scroll() {
       Column() {
-        Text('AI 服务配置').fontSize(16).fontWeight(FontWeight.Bold).margin({ bottom: 16 })
+        Text('AI 服务配置').fontSize(16).fontWeight(FontWeight.Bold).margin({ bottom: 4 })
+        Text('配置后可使用 AI 检索式生成和摘要解析。未配置时 AI 功能不可用。').fontSize(12).fontColor('#999').margin({ bottom: 16 })
 
         Text('选择 Provider').fontSize(12).fontColor('#888').margin({ bottom: 4 })
         Row() {
