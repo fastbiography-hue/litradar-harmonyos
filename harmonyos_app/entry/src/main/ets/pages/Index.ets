@@ -86,11 +86,31 @@ struct Index {
     finally { this.isLoading = false }
   }
 
+  async onSearch(rawQuery: string): Promise<void> {
+    this.fetchError = ''; this.isLoading = true; this.selectedQuery = ''
+    const tempProfile: QueryProfile = {
+      id: 'search', name: rawQuery.substring(0, 30), enabled: true,
+      keywords: rawQuery.split(/\s+/).filter((w: string) => w.length > 2),
+      pubmedQuery: rawQuery, europePmcQuery: rawQuery,
+      createdAt: 0, updatedAt: 0
+    }
+    try {
+      let papers: Paper[] = await fetchAll(tempProfile, 40)
+      if (papers.length === 0) { this.fetchError = '未找到结果，尝试更具体的关键词'; this.isLoading = false; return }
+      papers = deduplicatePapers(papers)
+      papers = scorePapers(papers, tempProfile.keywords)
+      try { await upsertPapers(this.context, papers) } catch (dbErr) { console.error('[Index] upsert:', (dbErr as Error).message) }
+      this.papers = papers; this.computeStats()
+    } catch (e) { this.fetchError = (e as Error).message }
+    finally { this.isLoading = false }
+  }
+
   build() {
     Column() {
       TopToolbar({
         statsTotal: this.stats.total, statsOA: this.stats.oa, statsHigh: this.stats.highRelevance,
-        isLoading: this.isLoading, onRunClick: () => this.onRunClicked()
+        isLoading: this.isLoading, onRunClick: () => this.onRunClicked(),
+        onSearch: (q: string) => this.onSearch(q)
       })
       Row() {
         QueryPanel({ queries: $queries, selectedQuery: $selectedQuery, onQuerySelected: (n: string) => this.onQuerySelected(n) })
