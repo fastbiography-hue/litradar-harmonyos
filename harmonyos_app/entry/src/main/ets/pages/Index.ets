@@ -136,8 +136,18 @@ struct Index {
       })
     }.width('100%').height('100%')
 
-    if (this.showSettings) { this.overlay(SettingsPanel, () => { this.showSettings = false }) }
-    if (this.showAiSearch) { this.overlay(SearchTranslatorPanel, () => { this.showAiSearch = false }) }
+    if (this.showSettings) {
+      Column() { Column() { SettingsPanel() }.width(640).backgroundColor('#FFFFFF').borderRadius(12) }
+      .width('100%').height('100%').backgroundColor('#00000044')
+      .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
+      .onClick(() => { this.showSettings = false })
+    }
+    if (this.showAiSearch) {
+      Column() { Column() { SearchTranslatorPanel() }.width(640).backgroundColor('#FFFFFF').borderRadius(12) }
+      .width('100%').height('100%').backgroundColor('#00000044')
+      .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
+      .onClick(() => { this.showAiSearch = false })
+    }
     if (this.showNotes) {
       Column() {
         Scroll() { Column() { Text('📒 知识笔记').fontSize(16).fontWeight(FontWeight.Bold).margin({ bottom: 12 }); TextArea({ placeholder: '使用 [[双向链接]] 引用文献...', text: '' }).height(200).fontSize(13).margin({ bottom: 12 }).backgroundColor('#F5F7FA').borderRadius(6); Button('保存').width('100%').height(36).fontSize(14).backgroundColor('#2F5496').fontColor('#FFF').borderRadius(6).onClick(() => { this.showNotes = false }) }.padding(24).width('100%').alignItems(HorizontalAlign.Start) }.width(400).backgroundColor('#FFF').borderRadius(12)
@@ -145,14 +155,6 @@ struct Index {
       .onClick(() => { this.showNotes = false })
     }
     }.width('100%').height('100%')
-  }
-
-  @Builder overlay(content: new () => any, dismiss: () => void) {
-    Column() {
-      Column() { content() }.width(640).backgroundColor('#FFFFFF').borderRadius(12)
-    }.width('100%').height('100%').backgroundColor('#00000044')
-    .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
-    .onClick(() => dismiss())
   }
 
   @Builder sidebarContent() {

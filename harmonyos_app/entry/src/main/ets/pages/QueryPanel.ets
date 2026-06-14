@@ -27,6 +27,7 @@ export default struct QueryPanel {
   }
 
   build() {
+    Stack() {
     Column() {
       // Section header
       Row() {
@@ -133,5 +134,6 @@ export default struct QueryPanel {
       .position({ x: 0, y: 0 })
       .onClick(() => { this.showEditor = false })
     }
+    }.width('100%').height('100%')
   }
 }

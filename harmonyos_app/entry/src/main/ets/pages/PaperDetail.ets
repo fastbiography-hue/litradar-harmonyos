@@ -37,8 +37,17 @@ export default struct PaperDetail {
     Column() { if (title) Text(title).fontSize(12).fontWeight(FontWeight.Bold).fontColor('#888').margin({ bottom: 8 }).width('100%'); content() }.width('100%').margin({ bottom: 16 })
   }
 
+  @Builder LabelValue(lbl: string, val: string, multi: boolean) {
+    if (val && val.trim() !== '') {
+      Column() {
+        Text(lbl).fontSize(11).fontColor('#999').fontWeight(FontWeight.Bold).margin({ bottom: 2 }).width('100%')
+        Text(val).fontSize(12).fontColor('#444').maxLines(multi ? 12 : 3).textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
+      }.width('100%').alignItems(HorizontalAlign.Start).margin({ bottom: 10 })
+    }
+  }
+
   @Builder tag(text: string, color: string) {
-    Text(text).fontSize(10).padding({ left: 6, right: 6, top: 2, bottom: 2 }).backgroundColor(color).fontColor('#FFF').borderRadius(3)
+    Text(text).fontSize(10).margin({ left: 4, right: 4, top: 2, bottom: 2 }).backgroundColor(color).fontColor('#FFF').borderRadius(3)
   }
 
   build() {
@@ -58,8 +67,7 @@ export default struct PaperDetail {
           if (this.paper!.pmid) { this.tag(`PMID:${this.paper!.pmid}`, '#888'); Blank().width(6) }
           if (this.paper!.pmcid) { this.tag(`PMCID:${this.paper!.pmcid}`, '#888'); Blank().width(6) }
           if (this.paper!.doi) { this.tag('DOI', '#2F5496'); Blank().width(6) }
-        }.width('100%').margin({ bottom: 12 }).flexWrap(FlexWrap.Wrap)
-
+        }.width('100%').margin({ bottom: 12 })
         // 3. Action buttons
         Row() {
           Button(this.aiLoading ? '解析中...' : '🤖 AI 解析').fontSize(11).height(32).enabled(!this.aiLoading).backgroundColor('#F0F4FF').fontColor('#2F5496').border({ width: 1, color: '#D0D9F0' }).borderRadius(6).onClick(() => this.onAiAnalyze())
@@ -68,8 +76,7 @@ export default struct PaperDetail {
           Blank().width(6)
           Button(`📝 笔记${this.noteCount > 0 ? `(${this.noteCount})` : ''}`).fontSize(11).height(32).backgroundColor('#FFF7E6').fontColor('#D48806').borderRadius(6).border({ width: 1, color: '#FFD666' }).onClick(() => { this.showNoteEditor = !this.showNoteEditor; this.loadNotes() })
           if (this.paper!.pmcid && this.paper!.isOA === 'Yes') { Blank().width(6); Button('📄 PDF').fontSize(11).height(32).backgroundColor('#E8F5E9').fontColor('#2E7D32').borderRadius(6).border({ width: 1, color: '#A5D6A7' }).onClick(() => this.openUrl(`https://www.ncbi.nlm.nih.gov/pmc/articles/${this.paper!.pmcid}/pdf/`)) }
-        }.width('100%').margin({ bottom: 12 }).flexWrap(FlexWrap.Wrap)
-
+        }.width('100%').margin({ bottom: 12 })
         // Citation result
         if (this.citationResult) {
           this.section('引用结果', () => { Text(this.citationResult).fontSize(12).fontColor('#333').padding(10).backgroundColor('#F5F7FA').borderRadius(6).width('100%') })
@@ -81,10 +88,12 @@ export default struct PaperDetail {
         // Citation picker
         if (this.showCitationPicker) {
           this.section('选择引用格式', () => {
-            Grid() {
-              ForEach(this.fmts1, (fmt: CitationFormat) => { GridItem() { Button(String(fmt)).fontSize(10).height(28).backgroundColor('#F5F5F5').fontColor('#333').borderRadius(4).onClick(() => this.onCopyCitation(fmt)) } })
-              ForEach(this.fmts2, (fmt: CitationFormat) => { GridItem() { Button(String(fmt)).fontSize(10).height(28).backgroundColor('#F5F5F5').fontColor('#333').borderRadius(4).onClick(() => this.onCopyCitation(fmt)) } })
-            }.columnsTemplate('1fr 1fr').rowsGap(4).columnsGap(4).width('100%')
+            Row() {
+              ForEach(this.fmts1, (fmt: CitationFormat) => { Button(String(fmt)).fontSize(10).height(28).backgroundColor('#F5F5F5').fontColor('#333').borderRadius(4).layoutWeight(1).margin({ right: 4 }).onClick(() => this.onCopyCitation(fmt)) })
+            }.width('100%').margin({ bottom: 4 })
+            Row() {
+              ForEach(this.fmts2, (fmt: CitationFormat) => { Button(String(fmt)).fontSize(10).height(28).backgroundColor('#F5F5F5').fontColor('#333').borderRadius(4).layoutWeight(1).margin({ right: 4 }).onClick(() => this.onCopyCitation(fmt)) })
+            }.width('100%')
           })
         }
 
@@ -99,8 +108,8 @@ export default struct PaperDetail {
         // AI analysis
         if (this.aiAnalysis && this.aiAnalysis.researchQuestion) {
           this.section('🤖 AI 解析', () => {
-            Column() { LabelValue('研究问题', this.aiAnalysis!.researchQuestion); LabelValue('方法', this.aiAnalysis!.methods); LabelValue('主要发现', this.aiAnalysis!.mainFindings); LabelValue('局限性', this.aiAnalysis!.limitations); LabelValue('临床价值', this.aiAnalysis!.clinicalValue) }
-              .padding(12).backgroundColor('#F0F4FF').borderRadius(8).width('100%')
+            Column() { this.LabelValue('研究问题', this.aiAnalysis!.researchQuestion, false); this.LabelValue('方法', this.aiAnalysis!.methods, false); this.LabelValue('主要发现', this.aiAnalysis!.mainFindings, true); this.LabelValue('局限性', this.aiAnalysis!.limitations, false); this.LabelValue('临床价值', this.aiAnalysis!.clinicalValue, false) }
+              .padding({ left: 12, right: 12, top: 12, bottom: 12 }).backgroundColor('#F0F4FF').borderRadius(8).width('100%')
           })
         }
 
@@ -112,26 +121,14 @@ export default struct PaperDetail {
         }
 
         // Details
-        LabelValue('作者', this.paper!.allAuthors)
-        LabelValue('期刊', this.paper!.journal)
-        LabelValue('发表时间', this.paper!.pubDate); LabelValue('来源', this.paper!.source)
-        LabelValue('MeSH', this.paper!.meshTerms, true)
-        LabelValue('摘要', this.paper!.abstract, true)
+        this.LabelValue('作者', this.paper!.allAuthors, false)
+        this.LabelValue('期刊', this.paper!.journal, false)
+        this.LabelValue('发表时间', this.paper!.pubDate, false)
+        this.LabelValue('来源', this.paper!.source, false)
+        this.LabelValue('MeSH', this.paper!.meshTerms, true)
+        this.LabelValue('摘要', this.paper!.abstract, true)
       }
     }.width('100%').padding(16).alignItems(HorizontalAlign.Start)
     }.width('100%').height('100%').scrollable(ScrollDirection.Vertical)
-  }
-}
-
-@Component
-struct LabelValue {
-  @Prop label: string = ''; @Prop value: string = ''; @Prop multi: boolean = false
-  build() {
-    if (this.value && this.value.trim() !== '') {
-      Column() {
-        Text(this.label).fontSize(11).fontColor('#999').fontWeight(FontWeight.Bold).margin({ bottom: 2 }).width('100%')
-        Text(this.value).fontSize(12).fontColor('#444').maxLines(this.multi ? 12 : 3).textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
-      }.width('100%').alignItems(HorizontalAlign.Start).margin({ bottom: 10 })
-    }
   }
 }

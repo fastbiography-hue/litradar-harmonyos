@@ -34,9 +34,9 @@ export default struct TopToolbar {
       Blank()
 
       Row() {
-        Chip('总数', this.statsTotal, '#F0F4FF')
-        Chip('OA', this.statsOA, '#E8F5E9')
-        Chip('高分', this.statsHigh, '#FFF7E6')
+        Chip({ label: '总数', count: this.statsTotal, bgColor: '#F0F4FF' })
+        Chip({ label: 'OA', count: this.statsOA, bgColor: '#E8F5E9' })
+        Chip({ label: '高分', count: this.statsHigh, bgColor: '#FFF7E6' })
       }
 
       Button(this.isLoading ? '抓取中...' : '更新订阅').height(36).margin({ left: 12 }).fontSize(12)
@@ -63,7 +63,6 @@ struct Chip {
     Row() {
       Text(`${this.label}: ${this.count}`).fontSize(11).fontColor('#666')
     }
-    .padding({ left: 10, right: 10, top: 4, bottom: 4 })
-    .backgroundColor(this.bgColor).borderRadius(12).margin({ left: 6 })
+    .padding(4).backgroundColor(this.bgColor).borderRadius(12).margin({ left: 6 })
   }
 }
