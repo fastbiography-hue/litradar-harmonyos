@@ -22,7 +22,7 @@
 - **约束**: 只改 `engine/FetchEngine.ets`
 
 ### M2-T03: ConfigService 完善
-- **状态**: pending
+- **状态**: completed
 - **文件**: `docs/tasks/M2-T03-config-service.md`
 - **目标**: 完善检索策略增删改查和默认值
 - **约束**: 只改 `service/ConfigService.ets`

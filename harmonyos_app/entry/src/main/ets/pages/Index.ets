@@ -1,7 +1,7 @@
 // pages/Index.ets — M2: 纯原生引擎，不依赖 Python 后端
 import { Paper, QueryConfig, AppState } from '../model/PaperModel'
 import { upsertPapers, queryPapers } from '../service/DbService'
-import { getConfig } from '../service/ConfigService'
+import { getConfig, ensureDefaults } from '../service/ConfigService'
 import type { AppConfig, QueryConfig as CfgQuery } from '../service/ConfigService'
 import { fetchAll } from '../engine/FetchEngine'
 import { deduplicatePapers, scorePapers } from '../engine/ScoreEngine'
@@ -33,6 +33,7 @@ struct Index {
 
   async aboutToAppear(): Promise<void> {
     try {
+      await ensureDefaults(this.context)
       this.appConfig = await getConfig(this.context)
       this.loadQueriesFromConfig()
       this.papers = await queryPapers(this.context, null, 200)

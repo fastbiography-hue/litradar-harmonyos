@@ -66,19 +66,39 @@ async function getPrefs(context: common.Context): Promise<dataPreferences.Prefer
   return _prefs
 }
 
+/**
+ * 读取完整配置。首次启动（Preferences 无数据）时返回 DEFAULT_CONFIG，
+ * 不触发自动写入。写入由 saveConfig / upsertQuery / deleteQuery 显式触发。
+ */
 export async function getConfig(context: common.Context): Promise<AppConfig> {
   try {
     const prefs = await getPrefs(context)
     const raw = await prefs.get(KEY_APP_CONFIG, '') as string
     if (raw && raw !== '') {
-      return JSON.parse(raw) as AppConfig
+      const parsed = JSON.parse(raw) as AppConfig
+      return parsed
     }
   } catch (e) {
     console.error('[ConfigService] getConfig failed, using defaults:', (e as Error).message)
   }
-  // First launch: write defaults
-  await saveConfig(context, DEFAULT_CONFIG)
   return DEFAULT_CONFIG
+}
+
+/**
+ * 首次启动时将 DEFAULT_CONFIG 写入 Preferences。
+ * 幂等：已有数据时不覆盖。应在 Index.aboutToAppear 中调用一次。
+ */
+export async function ensureDefaults(context: common.Context): Promise<void> {
+  try {
+    const prefs = await getPrefs(context)
+    const raw = await prefs.get(KEY_APP_CONFIG, '') as string
+    if (!raw || raw === '') {
+      await prefs.put(KEY_APP_CONFIG, JSON.stringify(DEFAULT_CONFIG))
+      await prefs.flush()
+    }
+  } catch (e) {
+    console.error('[ConfigService] ensureDefaults failed:', (e as Error).message)
+  }
 }
 
 export async function saveConfig(context: common.Context, config: AppConfig): Promise<void> {
