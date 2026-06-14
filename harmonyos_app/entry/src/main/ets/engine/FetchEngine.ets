@@ -1,6 +1,8 @@
 // engine/FetchEngine.ets
-import http from '@ohos.net.http'
+// M2-T02: PubMed + Europe PMC 原生直连，基于 QueryProfile
 import { Paper } from '../model/PaperModel'
+import type { QueryProfile } from '../models/QueryProfile'
+import { httpGetJson } from '../services/HttpService'
 
 const PUBMED_ESEARCH = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi'
 const PUBMED_EFETCH = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi'
@@ -21,37 +23,8 @@ function sleepMs(ms: number): Promise<void> {
   })
 }
 
-async function httpGetJson(url: string, timeout: number = 60000): Promise<Record<string, Object> | null> {
-  const req = http.createHttp()
-  try {
-    const res = await req.request(url, {
-      method: http.RequestMethod.GET,
-      connectTimeout: timeout,
-      readTimeout: timeout,
-      header: { 'Accept': 'application/json' }
-    })
-    if (res.responseCode !== 200) {
-      console.error(`[FetchEngine] HTTP ${res.responseCode} for ${url.substring(0, 80)}`)
-      return null
-    }
-    // result may be string or already-parsed object depending on content-type
-    const body: string | Object | ArrayBuffer = res.result
-    if (typeof body === 'string') {
-      return JSON.parse(body) as Record<string, Object>
-    }
-    if (typeof body === 'object') {
-      return body as Record<string, Object>
-    }
-    return null
-  } catch (e) {
-    console.error(`[FetchEngine] HTTP GET failed: ${url.substring(0, 80)} — ${(e as Error).message}`)
-    return null
-  } finally {
-    req.destroy()
-  }
-}
+// ── PubMed ──────────────────────────────────────────
 
-// PubMed E-utilities — esearch
 async function pubmedEsearch(query: string, maxResults: number): Promise<string[]> {
   const params = `db=pubmed&term=${encodeURIComponent(query)}&retmax=${maxResults}&sort=relevance&usehistory=y&retmode=json`
   const url = `${PUBMED_ESEARCH}?${params}`
@@ -63,46 +36,38 @@ async function pubmedEsearch(query: string, maxResults: number): Promise<string[
   return idList || []
 }
 
-// PubMed E-utilities — efetch (JSON abstracts, supports retmode=json)
-async function pubmedEfetch(ids: string[], apiKey: string): Promise<Record<string, Object>[]> {
+async function pubmedEfetch(ids: string[]): Promise<Record<string, Object>[]> {
   const results: Record<string, Object>[] = []
   const batchSize = 200
   for (let i = 0; i < ids.length; i += batchSize) {
     const batch = ids.slice(i, i + batchSize)
     const params = `db=pubmed&id=${batch.join(',')}&rettype=abstract&retmode=json`
-    const keyParam = apiKey ? `&api_key=${apiKey}` : ''
-    const url = `${PUBMED_EFETCH}?${params}${keyParam}`
-    try {
-      const data = await httpGetJson(url)
-      if (!data) continue
-      const result = data['result'] as Record<string, Object> | undefined
-      if (result) {
-        const uids = result['uids'] as string[] | undefined
-        if (uids) {
-          for (const uid of uids) {
-            const article = result[uid] as Record<string, Object> | undefined
-            if (article) {
-              article['_pmid'] = uid
-              results.push(article)
-            }
+    const url = `${PUBMED_EFETCH}?${params}`
+    const data = await httpGetJson(url)
+    if (!data) continue
+    const result = data['result'] as Record<string, Object> | undefined
+    if (result) {
+      const uids = result['uids'] as string[] | undefined
+      if (uids) {
+        for (const uid of uids) {
+          const article = result[uid] as Record<string, Object> | undefined
+          if (article) {
+            article['_pmid'] = uid
+            results.push(article)
           }
         }
       }
-    } catch (e) {
-      console.error('[FetchEngine] pubmedEfetch batch failed:', (e as Error).message)
     }
-    // Rate limit: ~3 req/s without API key
-    const delay = apiKey ? 100 : 334
-    await sleepMs(delay)
+    await sleepMs(334)  // ~3 req/s without API key
   }
   return results
 }
 
-function parsePubmedArticle(art: Record<string, Object>, pmid: string): Paper | null {
+function parsePubmedArticle(art: Record<string, Object>, pmid: string, queryTag: string): Paper | null {
   try {
     const title = (art['title'] ?? '') as string
-    const authors: string[] = []
     const authorList = art['authors'] as Record<string, Object>[] | undefined
+    const authors: string[] = []
     if (authorList) {
       for (const a of authorList) {
         const name = (a['name'] ?? '') as string
@@ -110,26 +75,9 @@ function parsePubmedArticle(art: Record<string, Object>, pmid: string): Paper | 
       }
     }
     const firstAuthor = authors.length > 0 ? authors[0] : ''
-    const allAuthors = authors.join('; ')
 
-    const abstract = (art['abstract'] ?? '') as string
-    const journal = (art['source'] ?? '') as string
-    const pubDate = (art['pubdate'] ?? '') as string
-    const year = pubDate.length >= 4 ? pubDate.substring(0, 4) : ''
-
-    const elocationIds = art['elocationid'] as Record<string, Object>[] | undefined
-    let doi = ''
-    if (elocationIds) {
-      for (const e of elocationIds) {
-        if ((e['eidtype'] ?? '') === 'doi') {
-          doi = (e['content'] ?? '') as string
-          break
-        }
-      }
-    }
-
-    // More specific DOI extraction
     const articleIds = art['articleids'] as Record<string, Object>[] | undefined
+    let doi = ''
     let pmcid = ''
     if (articleIds) {
       for (const idObj of articleIds) {
@@ -151,30 +99,17 @@ function parsePubmedArticle(art: Record<string, Object>, pmid: string): Paper | 
       }
     }
 
-    // Authors might not be in JSON format, fallback to author list from sortfirstauthor
-    if (!firstAuthor) {
-      const sortFirstAuthor = (art['sortfirstauthor'] ?? '') as string
-      if (sortFirstAuthor) {
-        // authors array might be in different format
-        const authorNames = sortFirstAuthor
-      }
-    }
-
-    // If title is missing, try to extract from article
-    if (!title || title === '') {
-      const titleFromArticle = (art['articletitle'] ?? '') as string
-      if (!titleFromArticle) return null
-    }
+    const pubDate = (art['pubdate'] ?? '') as string
 
     return {
       id: `pmid${pmid}`,
-      title: title || (art['articletitle'] as string) || '',
+      title: title,
       firstAuthor: firstAuthor || (art['sortfirstauthor'] as string) || '',
-      allAuthors: allAuthors || (art['fulljournalname'] as string) || '',
-      journal: journal,
-      year: year,
+      allAuthors: authors.join('; '),
+      journal: (art['source'] ?? '') as string,
+      year: pubDate.length >= 4 ? pubDate.substring(0, 4) : '',
       pubDate: pubDate,
-      abstract: abstract,
+      abstract: (art['abstract'] ?? '') as string,
       meshTerms: meshTerms.join('; '),
       keywords: '',
       doi: doi,
@@ -183,7 +118,7 @@ function parsePubmedArticle(art: Record<string, Object>, pmid: string): Paper | 
       isOA: pmcid ? 'Yes' : 'No',
       source: 'PubMed',
       citations: 0,
-      queryTag: '',
+      queryTag: queryTag,
       relevanceScore: 0.0,
       pdfPath: '',
       pdfMd5: '',
@@ -196,30 +131,19 @@ function parsePubmedArticle(art: Record<string, Object>, pmid: string): Paper | 
   }
 }
 
-export async function fetchPubMed(
-  query: string,
-  dateFrom: string,
-  maxResults: number,
-  apiKey: string = ''
-): Promise<Paper[]> {
+export async function fetchPubMed(profile: QueryProfile, maxResults: number = 100): Promise<Paper[]> {
   try {
-    const fullQuery = dateFrom
-      ? `${query} AND ("${dateFrom}"[Date - Publication] : "3000"[Date - Publication])`
-      : query
-
-    console.info(`[FetchEngine] PubMed esearch: ${fullQuery.substring(0, 100)}...`)
-    const ids = await pubmedEsearch(fullQuery, maxResults)
+    console.info(`[FetchEngine] PubMed: ${profile.pubmedQuery.substring(0, 100)}...`)
+    const ids = await pubmedEsearch(profile.pubmedQuery, maxResults)
     if (ids.length === 0) {
       console.info('[FetchEngine] PubMed: no results')
       return []
     }
-    console.info(`[FetchEngine] PubMed found ${ids.length} IDs, fetching details...`)
-
-    const articles = await pubmedEfetch(ids, apiKey)
+    const articles = await pubmedEfetch(ids)
     const papers: Paper[] = []
     for (const art of articles) {
       const pmid = (art['_pmid'] ?? '') as string
-      const paper = parsePubmedArticle(art, pmid)
+      const paper = parsePubmedArticle(art, pmid, profile.name)
       if (paper) papers.push(paper)
     }
     console.info(`[FetchEngine] PubMed → ${papers.length} papers`)
@@ -230,29 +154,21 @@ export async function fetchPubMed(
   }
 }
 
-// Europe PMC REST API
-export async function fetchEuropePMC(
-  query: string,
-  dateFrom: string,
-  maxResults: number
-): Promise<Paper[]> {
-  try {
-    let fullQuery = query
-    if (dateFrom) {
-      fullQuery += ` AND FIRST_PDATE:[${dateFrom} TO 3000-12-31]`
-    }
-    console.info(`[FetchEngine] Europe PMC: ${fullQuery.substring(0, 100)}...`)
+// ── Europe PMC ──────────────────────────────────────
 
+export async function fetchEuropePmc(profile: QueryProfile, maxResults: number = 100): Promise<Paper[]> {
+  try {
+    console.info(`[FetchEngine] Europe PMC: ${profile.europePmcQuery.substring(0, 100)}...`)
     const allPapers: Paper[] = []
     let cursor = '*'
     const pageSize = Math.min(maxResults, 100)
 
     while (allPapers.length < maxResults) {
-      const params = `query=${encodeURIComponent(fullQuery)}&resultType=core&pageSize=${pageSize}&format=json&cursorMark=${encodeURIComponent(cursor)}`
+      const params = `query=${encodeURIComponent(profile.europePmcQuery)}&resultType=core&pageSize=${pageSize}&format=json&cursorMark=${encodeURIComponent(cursor)}`
       const url = `${EUROPE_PMC_SEARCH}?${params}`
-
       const data = await httpGetJson(url)
       if (!data) break
+
       const resultList = data['resultList'] as Record<string, Object> | undefined
       if (!resultList) break
 
@@ -267,7 +183,7 @@ export async function fetchEuropePMC(
           const title = (r['title'] ?? '') as string
           const hasOA = (r['isOpenAccess'] ?? '') === 'Y'
 
-          const paper: Paper = {
+          allPapers.push({
             id: pmid ? `pmid${pmid}` : `epmc${simpleHash(title || 'unknown')}`,
             title: title,
             firstAuthor: ((r['authorString'] ?? '') as string).split(',')[0]?.trim() || '',
@@ -284,14 +200,13 @@ export async function fetchEuropePMC(
             isOA: hasOA ? 'Yes' : 'No',
             source: 'Europe PMC',
             citations: Number(r['citedByCount'] ?? 0),
-            queryTag: '',
+            queryTag: profile.name,
             relevanceScore: 0.0,
             pdfPath: '',
             pdfMd5: '',
             createdAt: '',
             updatedAt: ''
-          }
-          allPapers.push(paper)
+          })
         } catch (e) {
           console.error('[FetchEngine] Europe PMC parse item failed:', (e as Error).message)
         }
@@ -306,30 +221,17 @@ export async function fetchEuropePMC(
     console.info(`[FetchEngine] Europe PMC → ${allPapers.length} papers`)
     return allPapers
   } catch (e) {
-    console.error('[FetchEngine] fetchEuropePMC failed:', (e as Error).message)
+    console.error('[FetchEngine] fetchEuropePmc failed:', (e as Error).message)
     return []
   }
 }
 
-export async function fetchAll(
-  query: string,
-  sources: string[],
-  dateFrom: string,
-  maxPerSource: number = 100,
-  apiKey: string = ''
-): Promise<Paper[]> {
-  const queue: Promise<Paper[]>[] = []
-  for (const src of sources) {
-    if (src === 'pubmed') {
-      queue.push(fetchPubMed(query, dateFrom, maxPerSource, apiKey))
-    } else if (src === 'europe_pmc') {
-      queue.push(fetchEuropePMC(query, dateFrom, maxPerSource))
-    }
-  }
-  const results = await Promise.all(queue)
-  let all: Paper[] = []
-  for (const batch of results) {
-    all = all.concat(batch)
-  }
-  return all
+// ── 统一入口 ────────────────────────────────────────
+
+export async function fetchAll(profile: QueryProfile, maxResults: number = 100): Promise<Paper[]> {
+  const [pubmedResults, epmcResults] = await Promise.all([
+    fetchPubMed(profile, maxResults),
+    fetchEuropePmc(profile, maxResults)
+  ])
+  return pubmedResults.concat(epmcResults)
 }

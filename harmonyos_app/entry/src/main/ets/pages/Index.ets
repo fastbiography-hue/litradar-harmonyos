@@ -95,13 +95,9 @@ struct Index {
       let sourceErrors: string[] = []
       for (const profile of targets) {
         try {
-          // Fetch PubMed + Europe PMC separately per profile
-          const pubmedBatch = await fetchAll(profile.pubmedQuery, ['pubmed'], '2020-01-01', 100)
-          const epmcBatch = await fetchAll(profile.europePmcQuery, ['europe_pmc'], '2020-01-01', 100)
-          for (const p of pubmedBatch) { p.queryTag = profile.name }
-          for (const p of epmcBatch) { p.queryTag = profile.name }
-          allPapers = allPapers.concat(pubmedBatch).concat(epmcBatch)
-          console.info(`[Index] ${profile.name}: PubMed=${pubmedBatch.length} EuropePMC=${epmcBatch.length}`)
+          const batch = await fetchAll(profile, 100)
+          allPapers = allPapers.concat(batch)
+          console.info(`[Index] ${profile.name}: ${batch.length} papers`)
         } catch (e) {
           sourceErrors.push(`${profile.name}: ${(e as Error).message}`)
         }
