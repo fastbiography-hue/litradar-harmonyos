@@ -59,7 +59,7 @@ export default struct SettingsPanel {
       promptAction.showToast({ message: '请输入 API Key', duration: 2000 })
       return
     }
-    const info = getProviderInfo(this.selectedProvider]
+    const info = getProviderInfo(this.selectedProvider)
     if (!info) return
     const config: AiProviderConfig = {
       id: this.selectedProvider,
@@ -107,7 +107,7 @@ export default struct SettingsPanel {
           .onChange((v: string) => { this.apiKey = v })
 
         Text('Model').fontSize(12).fontColor('#888').margin({ bottom: 4 })
-        TextInput({ placeholder: getProviderInfo(this.selectedProvider]?.defaultModel || '', text: this.model })
+        TextInput({ placeholder: this.model || 'model name', text: this.model })
           .width('100%').height(36).fontSize(13).margin({ bottom: 12 })
           .backgroundColor('#F5F5F5').borderRadius(4)
           .onChange((v: string) => { this.model = v })

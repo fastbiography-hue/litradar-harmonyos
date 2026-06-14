@@ -78,17 +78,18 @@ function fmtRIS(f: CitationFields): string {
 }
 
 interface CslAuthor { family: string; given: string }
-interface CslObject { type: string; author: CslAuthor[]; title: string; 'container-title': string; issued: { 'date-parts': string[][] }; DOI: string; PMID: string }
+interface CslDateParts { 'date-parts': string[][] }
+interface CslObject { type: string; author: CslAuthor[]; title: string; 'container-title': string; issued: CslDateParts; DOI: string; PMID: string }
 
 function fmtCSLJson(f: CitationFields): string {
+  const issued: CslDateParts = { 'date-parts': [[f.year]] }
+  const authors: CslAuthor[] = f.authors.map((a: string): CslAuthor => {
+    const parts: string[] = a.split(' ')
+    return { family: parts[parts.length - 1] || '', given: parts[0] || '' }
+  })
   const obj: CslObject = {
-    type: 'article-journal',
-    author: f.authors.map((a: string): CslAuthor => {
-      const parts: string[] = a.split(' ')
-      return { family: parts[parts.length - 1] || '', given: parts[0] || '' }
-    }),
-    title: f.title, 'container-title': f.journal,
-    issued: { 'date-parts': [[f.year]] }, DOI: f.doi, PMID: f.pmid
+    type: 'article-journal', author: authors, title: f.title, 'container-title': f.journal,
+    issued: issued, DOI: f.doi, PMID: f.pmid
   }
   return JSON.stringify(obj)
 }
@@ -130,5 +131,8 @@ export function formatCitations(papers: Paper[], format: CitationFormat): string
 }
 
 export function getSupportedFormats(): CitationFormat[] {
-  return Object.values(CitationFormat)
+  return [CitationFormat.GBT7714, CitationFormat.APA7, CitationFormat.VANCOUVER,
+    CitationFormat.IEEE, CitationFormat.MLA9, CitationFormat.CHICAGO,
+    CitationFormat.HARVARD, CitationFormat.BIBTEX, CitationFormat.RIS,
+    CitationFormat.CSL_JSON, CitationFormat.WORD, CitationFormat.MARKDOWN]
 }
