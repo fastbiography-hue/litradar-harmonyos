@@ -89,11 +89,9 @@ export function deduplicatePapers(papers: Paper[]): Paper[] {
 export function scorePapers(papers: Paper[], keywords: string[]): Paper[] {
   if (!papers || papers.length === 0) return []
 
-  // Tag each paper with its original index for stable sort
-  const indexed: Array<[Paper, number]> = papers.map((p: Paper, i: number): [Paper, number] => [p, i])
-
   const scored: Paper[] = []
-  for (const [p, _origIdx] of indexed) {
+  for (let i = 0; i < papers.length; i++) {
+    const p: Paper = papers[i]
     let s = 0.0
     const titleLower = (p.title || '').toLowerCase()
     const abstractLower = (p.abstract || '').toLowerCase()
