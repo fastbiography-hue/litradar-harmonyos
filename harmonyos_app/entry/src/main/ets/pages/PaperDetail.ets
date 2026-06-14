@@ -6,6 +6,8 @@ import { parseAbstract } from '../engines/AbstractParser'
 import { formatCitation, getSupportedFormats } from '../engines/CitationExportEngine'
 import { CitationFormat } from '../models/CitationModel'
 import type { AbstractAnalysis } from '../models/AbstractAnalysisModel'
+import { getNotes, addNote } from '../services/NoteService'
+import type { NoteItem } from '../services/NoteService'
 import promptAction from '@ohos.promptAction'
 
 @Component
@@ -18,17 +20,32 @@ export default struct PaperDetail {
   @State showNoteEditor: boolean = false
   @State noteText: string = ''
   @State noteCount: number = 0
+  @State recentNote: string = ''
   @State citationResult: string = ''
   private allFormats: CitationFormat[] = getSupportedFormats()
   private formatsRow1: CitationFormat[] = this.allFormats.slice(0, 6)
   private formatsRow2: CitationFormat[] = this.allFormats.slice(6)
 
+  private openUrl(url: string): void {
+    if (!url) return
+    try {
+      const want: Want = { action: 'ohos.want.action.viewData', uri: url }
+      this.context.startAbility(want).catch((e: Error) => console.error('[PaperDetail] openUrl:', e.message))
+    } catch (e) { /* ignore */ }
+  }
+
   private openDOI(doi: string): void {
     if (!doi) return
+    this.openUrl(`https://doi.org/${doi}`)
+  }
+
+  async loadNotes(): Promise<void> {
+    if (!this.paper) return
     try {
-      const want: Want = { action: 'ohos.want.action.viewData', uri: `https://doi.org/${doi}` }
-      this.context.startAbility(want).catch((e: Error) => console.error('[PaperDetail] openDOI:', e.message))
-    } catch (e) { /* ignore */ }
+      const notes: NoteItem[] = await getNotes(this.paper.id)
+      this.noteCount = notes.length
+      this.recentNote = notes.length > 0 ? notes[notes.length - 1].content : ''
+    } catch (e) { this.noteCount = 0; this.recentNote = '' }
   }
 
   async onAiAnalyze(): Promise<void> {
@@ -49,16 +66,19 @@ export default struct PaperDetail {
     try {
       this.citationResult = formatCitation(this.paper, format)
       this.showCitationPicker = false
-      promptAction.showToast({ message: `${format} 格式已生成`, duration: 2000 })
+      promptAction.showToast({ message: `${format} 格式已生成，长按选中复制`, duration: 3000 })
     } catch (e) { promptAction.showToast({ message: `导出失败: ${(e as Error).message}`, duration: 2000 }) }
   }
 
-  onSaveNote(): void {
-    if (!this.noteText.trim()) return
-    this.noteCount++
-    promptAction.showToast({ message: `笔记已保存 (共 ${this.noteCount} 条)`, duration: 2000 })
-    this.noteText = ''
-    this.showNoteEditor = false
+  async onSaveNote(): Promise<void> {
+    if (!this.noteText.trim() || !this.paper) return
+    try {
+      await addNote(this.paper.id, this.noteText.trim())
+      await this.loadNotes()
+      promptAction.showToast({ message: `笔记已保存 (共 ${this.noteCount} 条)`, duration: 2000 })
+      this.noteText = ''
+      this.showNoteEditor = false
+    } catch (e) { promptAction.showToast({ message: `保存失败: ${(e as Error).message}`, duration: 2000 }) }
   }
 
   @Builder LabelValue(label: string, value: string, isMultiLine: boolean = false) {
@@ -105,7 +125,7 @@ export default struct PaperDetail {
             if (this.paper && this.paper.pmcid && this.paper.isOA === 'Yes') {
               Button('📄 PDF').fontSize(11).height(28).margin({ left: 8 })
                 .backgroundColor('#E8F5E9').fontColor('#2E7D32').border({ width: 1, color: '#A5D6A7' }).borderRadius(4)
-                .onClick(() => this.openDOI(`https://www.ncbi.nlm.nih.gov/pmc/articles/${this.paper!.pmcid}/pdf/`))
+                .onClick(() => this.openUrl(`https://www.ncbi.nlm.nih.gov/pmc/articles/${this.paper!.pmcid}/pdf/`))
             }
           }.width('100%').margin({ bottom: 4 })
 

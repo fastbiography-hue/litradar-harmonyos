@@ -28,8 +28,10 @@ export default struct CollectionsPanel {
 
   build() {
     Column() {
-      Text('文献分类').fontSize(14).fontWeight(FontWeight.Bold).fontColor('#333')
+      Text('文献分类（实验性）').fontSize(14).fontWeight(FontWeight.Bold).fontColor('#999')
         .padding({ left: 16, top: 12, bottom: 4 }).width('100%')
+      Text('分类草稿，数据不会持久化').fontSize(10).fontColor('#CCCCCC')
+        .padding({ left: 16, bottom: 4 }).width('100%')
 
       ForEach(this.collections, (c: LiteratureCollection) => {
         Row() {

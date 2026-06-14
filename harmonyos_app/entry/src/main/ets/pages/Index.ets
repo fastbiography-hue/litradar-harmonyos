@@ -1,7 +1,9 @@
 // pages/Index.ets — M4: M2/M3 功能 + M4 组件
 import { Paper, QueryConfig } from '../model/PaperModel'
 import { upsertPapers, queryPapers } from '../service/DbService'
-import { init, initDefaultProfiles, getProfiles } from '../service/ConfigService'
+import { init, initDefaultProfiles, getProfiles, addProfile, deleteProfile, updateProfile } from '../service/ConfigService'
+import { initAiConfig } from '../services/AiConfigService'
+import { initNotes } from '../services/NoteService'
 import type { QueryProfile } from '../models/QueryProfile'
 import { fetchAll } from '../engine/FetchEngine'
 import { deduplicatePapers, scorePapers } from '../engine/ScoreEngine'
@@ -41,6 +43,8 @@ struct Index {
     try {
       await init(this.context)
       await initDefaultProfiles()
+      await initAiConfig(this.context)
+      await initNotes(this.context)
       this.profiles = await getProfiles()
       this.loadQueriesFromProfiles()
       this.papers = await queryPapers(this.context, null, 200)
@@ -126,9 +130,33 @@ struct Index {
         Column() {
           QueryPanel({ queries: $queries, selectedQuery: $selectedQuery,
             onQuerySelected: (n: string) => this.onQuerySelected(n),
-            onDeleteQuery: (n: string) => { if (this.selectedQuery === n) this.onQuerySelected('') },
-            onAddQuery: () => {},
-            onEditQuery: (n: string) => { this.selectedQuery = n }
+            onDeleteQuery: async (n: string) => {
+              if (this.selectedQuery === n) this.onQuerySelected('')
+              const found = this.profiles.find((p: QueryProfile) => p.name === n)
+              if (found) { await deleteProfile(found.id); this.profiles = await getProfiles(); this.loadQueriesFromProfiles() }
+            },
+            onAddQuery: async () => {
+              // Profiles added via QueryPanel UI — sync to ConfigService
+              const uiOnly = this.queries.filter((q: QueryConfig) => !this.profiles.find((p: QueryProfile) => p.name === q.name))
+              for (const q of uiOnly) {
+                const id = q.name.toLowerCase().replace(/\s+/g, '-')
+                await addProfile({ id, name: q.name, enabled: true,
+                  keywords: q.query.split(/\s+/).filter((w: string) => w.length > 2),
+                  pubmedQuery: q.query, europePmcQuery: q.query,
+                  createdAt: Date.now(), updatedAt: Date.now() })
+              }
+              if (uiOnly.length > 0) { this.profiles = await getProfiles(); this.loadQueriesFromProfiles() }
+            },
+            onEditQuery: async (n: string) => {
+              const found = this.profiles.find((p: QueryProfile) => p.name === n)
+              const updated = this.queries.find((q: QueryConfig) => q.name === n)
+              if (found && updated) {
+                found.pubmedQuery = updated.query; found.europePmcQuery = updated.query
+                found.keywords = updated.query.split(/\s+/).filter((w: string) => w.length > 2)
+                found.updatedAt = Date.now()
+                await updateProfile(found); this.profiles = await getProfiles(); this.loadQueriesFromProfiles()
+              }
+            }
           })
           CollectionsPanel({ onCollectionSelected: (name: string) => this.onQuerySelected(name) })
         }
