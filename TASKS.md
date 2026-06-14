@@ -10,7 +10,7 @@
 | M2-T01 | ScoreEngine 去重+评分 | completed |
 | M2-T03 | ConfigService 原生查询配置 | completed |
 | M2-T02 | FetchEngine PubMed/Europe PMC 直连 | completed |
-| M2-T04 | NativeRunFlow 原生抓取流程 | pending |
+| M2-T04 | NativeRunFlow 原生抓取流程 | completed |
 
 ### 执行顺序
 M2-T03 → M2-T02 → M2-T04
