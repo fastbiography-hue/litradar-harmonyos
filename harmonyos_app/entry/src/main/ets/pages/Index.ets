@@ -145,20 +145,17 @@ struct Index {
 
     // Overlay: Settings modal
     if (this.showSettings) {
-      Stack() {
-        Column().width('100%').height('100%').backgroundColor('#00000044')
-          .onClick(() => { this.showSettings = false })
+      Column() {
         Column() { SettingsPanel() }
-        .width(480).height('80%').backgroundColor('#FFFFFF').borderRadius(8)
-        .position({ x: '50%', y: '10%' }).translate({ x: '-50%', y: 0 })
-      }.width('100%').height('100%')
+        .width(480).backgroundColor('#FFFFFF').borderRadius(8).padding(0)
+      }.width('100%').height('100%').backgroundColor('#00000044')
+      .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
+      .onClick(() => { this.showSettings = false })
     }
 
     // Overlay: Notes editor
     if (this.showNotes) {
-      Stack() {
-        Column().width('100%').height('100%').backgroundColor('#00000044')
-          .onClick(() => { this.showNotes = false })
+      Column() {
         Scroll() {
           Column() {
             Text('📒 知识笔记').fontSize(16).fontWeight(FontWeight.Bold).margin({ bottom: 12 })
@@ -168,21 +165,20 @@ struct Index {
               .backgroundColor('#2F5496').fontColor(Color.White).borderRadius(6)
               .onClick(() => { this.showNotes = false })
           }.padding(20).width('100%').alignItems(HorizontalAlign.Start)
-        }
-        .width(400).height('70%').backgroundColor('#FFFFFF').borderRadius(8)
-        .position({ x: '50%', y: '15%' }).translate({ x: '-50%', y: 0 })
-      }.width('100%').height('100%')
+        }.width(400).backgroundColor('#FFFFFF').borderRadius(8)
+      }.width('100%').height('100%').backgroundColor('#00000044')
+      .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
+      .onClick(() => { this.showNotes = false })
     }
 
     // Overlay: AI search translator
     if (this.showAiSearch) {
-      Stack() {
-        Column().width('100%').height('100%').backgroundColor('#00000044')
-          .onClick(() => { this.showAiSearch = false })
+      Column() {
         Column() { SearchTranslatorPanel() }
-        .width(520).height('70%').backgroundColor('#FFFFFF').borderRadius(8)
-        .position({ x: '50%', y: '15%' }).translate({ x: '-50%', y: 0 })
-      }.width('100%').height('100%')
+        .width(520).backgroundColor('#FFFFFF').borderRadius(8)
+      }.width('100%').height('100%').backgroundColor('#00000044')
+      .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
+      .onClick(() => { this.showAiSearch = false })
     }
     }.width('100%').height('100%')
   }

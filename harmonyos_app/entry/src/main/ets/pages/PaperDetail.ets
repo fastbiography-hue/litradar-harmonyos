@@ -17,7 +17,11 @@ export default struct PaperDetail {
   @State showCitationPicker: boolean = false
   @State showNoteEditor: boolean = false
   @State noteText: string = ''
+  @State noteCount: number = 0
   @State citationResult: string = ''
+  private allFormats: CitationFormat[] = getSupportedFormats()
+  private formatsRow1: CitationFormat[] = this.allFormats.slice(0, 6)
+  private formatsRow2: CitationFormat[] = this.allFormats.slice(6)
 
   private openDOI(doi: string): void {
     if (!doi) return
@@ -51,7 +55,9 @@ export default struct PaperDetail {
 
   onSaveNote(): void {
     if (!this.noteText.trim()) return
-    promptAction.showToast({ message: '笔记已保存', duration: 2000 })
+    this.noteCount++
+    promptAction.showToast({ message: `笔记已保存 (共 ${this.noteCount} 条)`, duration: 2000 })
+    this.noteText = ''
     this.showNoteEditor = false
   }
 
@@ -103,16 +109,16 @@ export default struct PaperDetail {
             Column() {
               Text('选择引用格式').fontSize(12).fontWeight(FontWeight.Bold).margin({ bottom: 6 })
               Grid() {
-                ForEach(getSupportedFormats().slice(0, 6), (fmt: CitationFormat) => {
+                ForEach(this.formatsRow1, (fmt: CitationFormat) => {
                   GridItem() {
-                    Button(fmt).fontSize(10).height(28)
+                    Button(String(fmt)).fontSize(10).height(28)
                       .backgroundColor('#F5F5F5').fontColor('#333').borderRadius(3)
                       .onClick(() => this.onCopyCitation(fmt))
                   }
                 })
-                ForEach(getSupportedFormats().slice(6), (fmt: CitationFormat) => {
+                ForEach(this.formatsRow2, (fmt: CitationFormat) => {
                   GridItem() {
-                    Button(fmt).fontSize(10).height(28)
+                    Button(String(fmt)).fontSize(10).height(28)
                       .backgroundColor('#F5F5F5').fontColor('#333').borderRadius(3)
                       .onClick(() => this.onCopyCitation(fmt))
                   }
