@@ -1,11 +1,7 @@
-// components/TopToolbar.ets — M4: 搜索 + 抓取工具栏
-import { Colors, Layout } from '../styles/DesignTokens'
-
+// components/TopToolbar.ets — 专业桌面工具栏
 @Component
 export default struct TopToolbar {
-  @Prop statsTotal: number = 0
-  @Prop statsOA: number = 0
-  @Prop statsHigh: number = 0
+  @Prop statsTotal: number = 0; @Prop statsOA: number = 0; @Prop statsHigh: number = 0
   @Prop isLoading: boolean = false
   onRunClick: () => void = () => {}
   onSearch: (query: string) => void = () => {}
@@ -16,48 +12,58 @@ export default struct TopToolbar {
 
   build() {
     Row() {
-      Text('LitRadar')
-        .fontSize(20).fontWeight(FontWeight.Bold).fontColor(Colors.primary)
-        .margin({ left: 16 })
+      Text('LitRadar').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#2F5496').margin({ left: 20 })
+      Text('学术文献雷达').fontSize(12).fontColor('#999').margin({ left: 8 })
 
-      TextInput({ placeholder: '输入关键词直接搜索...', text: this.searchText })
-        .width(300).height(32).margin({ left: 16 }).fontSize(13)
-        .backgroundColor('#FFFFFF')
-        .borderRadius(4).border({ width: 1, color: Colors.border })
-        .onChange((value: string) => { this.searchText = value })
+      TextInput({ placeholder: '搜索 PubMed + Europe PMC...', text: this.searchText })
+        .width(440).height(36).margin({ left: 24 }).fontSize(13)
+        .backgroundColor('#F5F7FA').borderRadius(18)
+        .border({ width: 1, color: '#E0E4E8' })
+        .onChange((v: string) => { this.searchText = v })
         .onSubmit(() => { if (this.searchText.trim()) this.onSearch(this.searchText.trim()) })
 
-      Button('搜索')
+      Button('搜索').height(36).margin({ left: 8 }).fontSize(12)
         .enabled(!this.isLoading && this.searchText.trim() !== '')
-        .backgroundColor('#1890FF').fontColor(Color.White)
-        .height(32).margin({ left: 8 }).fontSize(12)
+        .backgroundColor('#2F5496').fontColor('#FFF').borderRadius(18).padding({ left: 16, right: 16 })
         .onClick(() => { if (this.searchText.trim()) this.onSearch(this.searchText.trim()) })
 
-      Button('AI 检索').height(32).margin({ left: 8 }).fontSize(12)
-        .backgroundColor('#722ED1').fontColor(Color.White).borderRadius(4)
-        .onClick(() => { if (this.onAiSearch) this.onAiSearch() })
-
-      Button('📒').height(32).margin({ left: 6 }).fontSize(14)
-        .backgroundColor(Color.Transparent).fontColor('#666')
-        .onClick(() => { if (this.onNotes) this.onNotes() })
+      Button('AI 检索').height(36).margin({ left: 6 }).fontSize(12)
+        .backgroundColor('#F0EEFF').fontColor('#722ED1').borderRadius(18).padding({ left: 12, right: 12 })
+        .onClick(() => this.onAiSearch())
 
       Blank()
 
-      Text(`共 ${this.statsTotal} 篇 | OA: ${this.statsOA} | 高分: ${this.statsHigh}`)
-        .fontSize(13).fontColor(Colors.textSecondary).margin({ right: 16 })
+      Row() {
+        Chip('总数', this.statsTotal, '#F0F4FF')
+        Chip('OA', this.statsOA, '#E8F5E9')
+        Chip('高分', this.statsHigh, '#FFF7E6')
+      }
 
-      Button(this.isLoading ? '抓取中...' : '更新订阅')
-        .enabled(!this.isLoading)
-        .backgroundColor(Colors.primary).fontColor(Color.White)
-        .height(32).margin({ right: 8 }).fontSize(12)
+      Button(this.isLoading ? '抓取中...' : '更新订阅').height(36).margin({ left: 12 }).fontSize(12)
+        .enabled(!this.isLoading).backgroundColor('#2F5496').fontColor('#FFF').borderRadius(18).padding({ left: 16, right: 16 })
         .onClick(() => this.onRunClick())
 
-      Button('⚙').height(32).margin({ right: 16 }).fontSize(14)
-        .backgroundColor(Color.Transparent).fontColor('#666')
-        .onClick(() => { if (this.onSettings) this.onSettings() })
+      Button('笔记').height(36).margin({ left: 6 }).fontSize(12)
+        .backgroundColor('#F5F5F5').fontColor('#666').borderRadius(18).padding({ left: 12, right: 12 })
+        .onClick(() => this.onNotes())
+
+      Button('⚙').height(36).margin({ left: 4, right: 20 }).fontSize(16)
+        .backgroundColor(Color.Transparent).fontColor('#999')
+        .onClick(() => this.onSettings())
     }
-    .width('100%').height(Layout.toolbarHeight)
-    .backgroundColor(Colors.toolbarBg)
-    .border({ width: { bottom: 1 }, color: Colors.toolbarBorder })
+    .width('100%').height(64)
+    .backgroundColor('#FFFFFF').border({ width: { bottom: 1 }, color: '#E8ECF0' })
+  }
+}
+
+@Component
+struct Chip {
+  @Prop label: string = ''; @Prop count: number = 0; @Prop bgColor: string = '#F0F0F0'
+  build() {
+    Row() {
+      Text(`${this.label}: ${this.count}`).fontSize(11).fontColor('#666')
+    }
+    .padding({ left: 10, right: 10, top: 4, bottom: 4 })
+    .backgroundColor(this.bgColor).borderRadius(12).margin({ left: 6 })
   }
 }
