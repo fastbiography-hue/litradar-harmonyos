@@ -102,6 +102,11 @@ export default struct PaperDetail {
             Button('📝 笔记').fontSize(11).height(28).margin({ left: 8 })
               .backgroundColor('#FFF7E6').fontColor('#D48806').border({ width: 1, color: '#FFD666' }).borderRadius(4)
               .onClick(() => { this.showNoteEditor = !this.showNoteEditor })
+            if (this.paper && this.paper.pmcid && this.paper.isOA === 'Yes') {
+              Button('📄 PDF').fontSize(11).height(28).margin({ left: 8 })
+                .backgroundColor('#E8F5E9').fontColor('#2E7D32').border({ width: 1, color: '#A5D6A7' }).borderRadius(4)
+                .onClick(() => this.openDOI(`https://www.ncbi.nlm.nih.gov/pmc/articles/${this.paper!.pmcid}/pdf/`))
+            }
           }.width('100%').margin({ bottom: 4 })
 
           // Citation format picker (inline)

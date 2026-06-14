@@ -124,7 +124,12 @@ struct Index {
       })
       Row() {
         Column() {
-          QueryPanel({ queries: $queries, selectedQuery: $selectedQuery, onQuerySelected: (n: string) => this.onQuerySelected(n) })
+          QueryPanel({ queries: $queries, selectedQuery: $selectedQuery,
+            onQuerySelected: (n: string) => this.onQuerySelected(n),
+            onDeleteQuery: (n: string) => { if (this.selectedQuery === n) this.onQuerySelected('') },
+            onAddQuery: () => {},
+            onEditQuery: (n: string) => { this.selectedQuery = n }
+          })
           CollectionsPanel({ onCollectionSelected: (name: string) => this.onQuerySelected(name) })
         }
         .width(220).height('100%')
