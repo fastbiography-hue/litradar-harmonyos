@@ -77,13 +77,20 @@ function fmtRIS(f: CitationFields): string {
   return lines.join('\n')
 }
 
+interface CslAuthor { family: string; given: string }
+interface CslObject { type: string; author: CslAuthor[]; title: string; 'container-title': string; issued: { 'date-parts': string[][] }; DOI: string; PMID: string }
+
 function fmtCSLJson(f: CitationFields): string {
-  return JSON.stringify({
+  const obj: CslObject = {
     type: 'article-journal',
-    author: f.authors.map((a: string) => ({ family: a.split(' ').pop(), given: a.split(' ')[0] })),
+    author: f.authors.map((a: string): CslAuthor => {
+      const parts: string[] = a.split(' ')
+      return { family: parts[parts.length - 1] || '', given: parts[0] || '' }
+    }),
     title: f.title, 'container-title': f.journal,
     issued: { 'date-parts': [[f.year]] }, DOI: f.doi, PMID: f.pmid
-  })
+  }
+  return JSON.stringify(obj)
 }
 
 function fmtWord(f: CitationFields): string {

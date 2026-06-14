@@ -1,7 +1,7 @@
 // engines/AiService.ets
 // M3-T01: 可插拔 AI 后端统一接口
 import http from '@ohos.net.http'
-import { AiProviderConfig, AiResponse, AI_PROVIDERS } from '../models/AiModel'
+import { AiProviderConfig, AiResponse, getProviderInfo } from '../models/AiModel'
 import { getEnabledProvider } from '../services/AiConfigService'
 
 // ── Provider request builders ────────────────────────
@@ -66,7 +66,7 @@ function getEndpoint(config: AiProviderConfig): string {
 // ── HTTP call ────────────────────────────────────────
 
 async function aiRequest(config: AiProviderConfig, prompt: string, maxTokens?: number): Promise<AiResponse> {
-  const model = config.model || AI_PROVIDERS[config.provider]?.defaultModel || ''
+  const model = config.model || getProviderInfo(config.provider)?.defaultModel || ''
   const endpoint = getEndpoint(config)
   const body = buildRequestBody(config.provider, prompt, model, maxTokens)
   const headers = buildHeaders(config)

@@ -4,6 +4,7 @@ import common from '@ohos.app.ability.common'
 import Want from '@ohos.app.ability.Want'
 import { parseAbstract } from '../engines/AbstractParser'
 import { formatCitation, getSupportedFormats } from '../engines/CitationExportEngine'
+import { CitationFormat } from '../models/CitationModel'
 import type { AbstractAnalysis } from '../models/AbstractAnalysisModel'
 import promptAction from '@ohos.promptAction'
 
@@ -39,10 +40,10 @@ export default struct PaperDetail {
     finally { this.aiLoading = false }
   }
 
-  onCopyCitation(format: string): void {
+  onCopyCitation(format: CitationFormat): void {
     if (!this.paper) return
     try {
-      this.citationResult = formatCitation(this.paper, format as string)
+      this.citationResult = formatCitation(this.paper, format)
       this.showCitationPicker = false
       promptAction.showToast({ message: `${format} 格式已生成`, duration: 2000 })
     } catch (e) { promptAction.showToast({ message: `导出失败: ${(e as Error).message}`, duration: 2000 }) }
@@ -102,14 +103,14 @@ export default struct PaperDetail {
             Column() {
               Text('选择引用格式').fontSize(12).fontWeight(FontWeight.Bold).margin({ bottom: 6 })
               Grid() {
-                ForEach(getSupportedFormats().slice(0, 6), (fmt: string) => {
+                ForEach(getSupportedFormats().slice(0, 6), (fmt: CitationFormat) => {
                   GridItem() {
                     Button(fmt).fontSize(10).height(28)
                       .backgroundColor('#F5F5F5').fontColor('#333').borderRadius(3)
                       .onClick(() => this.onCopyCitation(fmt))
                   }
                 })
-                ForEach(getSupportedFormats().slice(6), (fmt: string) => {
+                ForEach(getSupportedFormats().slice(6), (fmt: CitationFormat) => {
                   GridItem() {
                     Button(fmt).fontSize(10).height(28)
                       .backgroundColor('#F5F5F5').fontColor('#333').borderRadius(3)

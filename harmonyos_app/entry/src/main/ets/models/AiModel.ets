@@ -2,40 +2,31 @@
 // M3-T01: AI 服务配置模型
 
 export interface AiProviderConfig {
-  id: string
-  provider: string
-  model: string
-  apiKey: string
-  baseUrl: string
-  enabled: boolean
-  createdAt: number
-  updatedAt: number
+  id: string; provider: string; model: string; apiKey: string
+  baseUrl: string; enabled: boolean; createdAt: number; updatedAt: number
 }
 
 export interface AiRequest {
-  prompt: string
-  model?: string
-  temperature?: number
-  maxTokens?: number
+  prompt: string; model?: string; temperature?: number; maxTokens?: number
 }
 
 export interface AiResponse {
-  text: string
-  provider: string
-  model: string
-  error?: string
+  text: string; provider: string; model: string; error?: string
 }
 
-// Provider metadata (base URLs are defaults, user-overridable)
 export interface ProviderInfo {
   name: string; defaultBaseUrl: string; defaultModel: string
 }
-interface ProviderMap { [key: string]: ProviderInfo }
-const _providers: ProviderMap = {
-  'deepseek':   { name: 'DeepSeek',   defaultBaseUrl: 'https://api.deepseek.com/v1',           defaultModel: 'deepseek-chat' },
-  'openai':     { name: 'OpenAI',     defaultBaseUrl: 'https://api.openai.com/v1',              defaultModel: 'gpt-4o-mini' },
-  'anthropic':  { name: 'Anthropic',  defaultBaseUrl: 'https://api.anthropic.com/v1',           defaultModel: 'claude-sonnet-4-6' },
-  'doubao':     { name: '豆包',        defaultBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3', defaultModel: 'ep-2024' },
-  'tongyi':     { name: '通义千问',    defaultBaseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', defaultModel: 'qwen-turbo' }
+
+export function getProviderInfo(provider: string): ProviderInfo | undefined {
+  if (provider === 'deepseek')  return { name: 'DeepSeek',  defaultBaseUrl: 'https://api.deepseek.com/v1', defaultModel: 'deepseek-chat' }
+  if (provider === 'openai')    return { name: 'OpenAI',    defaultBaseUrl: 'https://api.openai.com/v1', defaultModel: 'gpt-4o-mini' }
+  if (provider === 'anthropic') return { name: 'Anthropic', defaultBaseUrl: 'https://api.anthropic.com/v1', defaultModel: 'claude-sonnet-4-6' }
+  if (provider === 'doubao')    return { name: '豆包',      defaultBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3', defaultModel: 'ep-2024' }
+  if (provider === 'tongyi')    return { name: '通义千问',  defaultBaseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', defaultModel: 'qwen-turbo' }
+  return undefined
 }
-export const AI_PROVIDERS: ProviderMap = _providers
+
+export function getAllProviderKeys(): string[] {
+  return ['deepseek', 'openai', 'anthropic', 'doubao', 'tongyi']
+}

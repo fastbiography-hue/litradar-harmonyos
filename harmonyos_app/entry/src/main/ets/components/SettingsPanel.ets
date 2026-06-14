@@ -1,5 +1,5 @@
 // components/SettingsPanel.ets — M3: AI 配置面板
-import { AiProviderConfig, AI_PROVIDERS } from '../models/AiModel'
+import { AiProviderConfig, getProviderInfo, getAllProviderKeys } from '../models/AiModel'
 import { getEnabledProvider, getProviders, saveProvider, updateProvider, disableAllProviders, initAiConfig } from '../services/AiConfigService'
 import common from '@ohos.app.ability.common'
 import promptAction from '@ohos.promptAction'
@@ -36,7 +36,7 @@ export default struct SettingsPanel {
 
   onProviderSelected(provider: string): void {
     this.selectedProvider = provider
-    const info = AI_PROVIDERS[provider]
+    const info = getProviderInfo(provider)
     if (info) this.model = info.defaultModel
     this.loadExistingConfig(provider)
   }
@@ -59,7 +59,7 @@ export default struct SettingsPanel {
       promptAction.showToast({ message: '请输入 API Key', duration: 2000 })
       return
     }
-    const info = AI_PROVIDERS[this.selectedProvider]
+    const info = getProviderInfo(this.selectedProvider]
     if (!info) return
     const config: AiProviderConfig = {
       id: this.selectedProvider,
@@ -89,8 +89,8 @@ export default struct SettingsPanel {
 
         Text('选择 Provider').fontSize(12).fontColor('#888').margin({ bottom: 4 })
         Row() {
-          ForEach(Object.keys(AI_PROVIDERS), (key: string) => {
-            Button(AI_PROVIDERS[key].name)
+          ForEach(getAllProviderKeys(), (key: string) => {
+            Button(getProviderInfo(key)?.name || key)
               .fontSize(11).height(28).margin({ right: 6 })
               .backgroundColor(this.selectedProvider === key ? '#2F5496' : '#F0F0F0')
               .fontColor(this.selectedProvider === key ? '#FFF' : '#333')
@@ -107,7 +107,7 @@ export default struct SettingsPanel {
           .onChange((v: string) => { this.apiKey = v })
 
         Text('Model').fontSize(12).fontColor('#888').margin({ bottom: 4 })
-        TextInput({ placeholder: AI_PROVIDERS[this.selectedProvider]?.defaultModel || '', text: this.model })
+        TextInput({ placeholder: getProviderInfo(this.selectedProvider]?.defaultModel || '', text: this.model })
           .width('100%').height(36).fontSize(13).margin({ bottom: 12 })
           .backgroundColor('#F5F5F5').borderRadius(4)
           .onChange((v: string) => { this.model = v })
