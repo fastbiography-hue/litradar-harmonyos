@@ -15,6 +15,8 @@
 ### 执行顺序
 M2-T03 → M2-T02 → M2-T04
 
+| M2-FINAL | Native MVP Acceptance | completed |
+
 ## M3 P0（学术知识中枢）
 
 | 任务 | 名称 | 状态 |
