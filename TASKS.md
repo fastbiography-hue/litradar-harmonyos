@@ -1,49 +1,44 @@
-# TASKS.md — M2 当前可执行任务
+# TASKS.md — 当前可执行任务
 
-## 任务状态说明
-- `pending` — 可领取
-- `in_progress` — 执行中
-- `completed` — 已完成
+## 状态说明
+`completed` / `in_progress` / `pending` / `planned`
 
----
+## M2 P0（消灭后端依赖）
 
-## P0 任务（必须完成）
+| 任务 | 名称 | 状态 |
+|------|------|:--:|
+| M2-T01 | ScoreEngine 去重+评分 | completed |
+| M2-T03 | ConfigService 原生查询配置 | completed |
+| M2-T02 | FetchEngine PubMed/Europe PMC 直连 | pending |
+| M2-T04 | NativeRunFlow 原生抓取流程 | pending |
 
-### M2-T01: ScoreEngine 完善
-- **状态**: completed
-- **文件**: `docs/tasks/M2-T01-score-engine.md`
-- **目标**: 完善去重/评分的边界情况和性能
-- **约束**: 只改 `engine/ScoreEngine.ets` 和测试相关文件
+### 执行顺序
+M2-T03 → M2-T02 → M2-T04
 
-### M2-T02: FetchEngine 完善
-- **状态**: pending
-- **文件**: `docs/tasks/M2-T02-fetch-engine.md`
-- **目标**: 完善 PubMed/Europe PMC 解析和错误处理
-- **约束**: 只改 `engine/FetchEngine.ets`
+## M3 P0（学术知识中枢）
 
-### M2-T03: ConfigService 完善
-- **状态**: completed
-- **文件**: `docs/tasks/M2-T03-config-service.md`
-- **目标**: 完善检索策略增删改查和默认值
-- **约束**: 只改 `service/ConfigService.ets`
+| 任务 | 名称 | 状态 |
+|------|------|:--:|
+| M3-T01 | AiService 可插拔 AI 接口 | pending |
+| M3-T02 | ChineseSearchTranslator AI 检索式生成 | pending |
+| M3-T03 | AiAbstractParser AI 摘要解析 | pending |
+| M3-T04 | CitationExport 12 种引用格式 | pending |
+| M3-T05 | KnowledgeNotes Markdown 知识笔记 | pending |
 
----
+### 执行顺序
+M3-T01 → M3-T02 → M3-T03 → M3-T04 → M3-T05
 
-## 等待添加的任务
+## M3 P1/P2（已规划，不强制实现）
 
-以下任务尚未编写详细规格，暂不可执行：
-- T-04 QueryEditor
-- T-08 PDF 阅读器
-- T-09 笔记+标签
-- T-10 导出
-- T-11 全文搜索
-- T-12 Zotero 同步
-
----
-
-## 任务执行规则
-
-1. 一次只做一个
-2. 修改文件数 ≤ 3（除非任务规格明确允许更多）
-3. 完成后更新此表状态
-4. 完成后输出：修改文件、验证方式、风险
+| 任务 | 名称 | 状态 |
+|------|------|:--:|
+| M3-T06 | KnowledgeGraph 知识图谱 | planned |
+| M3-T07 | SharePanel 分享面板入库 | planned |
+| M3-T08 | DesktopWidget 桌面小组件 | planned |
+| M3-T09 | WeeklyDigest AI 周报 | planned |
+| M3-T10 | FulltextTranslation PMC 全文翻译 | planned |
+| M3-T11 | DistributedReading 分布式阅读 | planned |
+| M3-T12 | PenAnnotationOCR 手写批注 | planned |
+| M3-T13 | SemanticScholarGraph 引用图谱 | planned |
+| M3-T14 | PanguLocalAI 盘古端侧 AI | planned |
+| M3-T15 | ZoteroGroups 群组协作 | planned |

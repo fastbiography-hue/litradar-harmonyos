@@ -1,8 +1,8 @@
-// pages/Index.ets — M2: 纯原生引擎，不依赖 Python 后端
-import { Paper, QueryConfig, AppState } from '../model/PaperModel'
+// pages/Index.ets — M2: 纯原生引擎，ConfigService + FetchEngine + ScoreEngine
+import { Paper, QueryConfig } from '../model/PaperModel'
 import { upsertPapers, queryPapers } from '../service/DbService'
-import { getConfig, ensureDefaults } from '../service/ConfigService'
-import type { AppConfig, QueryConfig as CfgQuery } from '../service/ConfigService'
+import { initDefaults, getAllProfiles } from '../service/ConfigService'
+import type { QueryProfile } from '../models/QueryProfile'
 import { fetchAll } from '../engine/FetchEngine'
 import { deduplicatePapers, scorePapers } from '../engine/ScoreEngine'
 import QueryPanel from './QueryPanel'
@@ -29,13 +29,13 @@ struct Index {
   @State stats: StatsInfo = { total: 0, oa: 0, downloaded: 0, highRelevance: 0 }
 
   private context: common.UIAbilityContext = getContext(this) as common.UIAbilityContext
-  private appConfig: AppConfig | null = null
+  private profiles: QueryProfile[] = []
 
   async aboutToAppear(): Promise<void> {
     try {
-      await ensureDefaults(this.context)
-      this.appConfig = await getConfig(this.context)
-      this.loadQueriesFromConfig()
+      await initDefaults(this.context)
+      this.profiles = await getAllProfiles(this.context)
+      this.loadQueriesFromProfiles()
       this.papers = await queryPapers(this.context, null, 200)
       this.computeStats()
     } catch (e) {
@@ -43,12 +43,13 @@ struct Index {
     }
   }
 
-  loadQueriesFromConfig(): void {
-    if (!this.appConfig) return
-    this.queries = this.appConfig.queries.map((q: CfgQuery): QueryConfig => ({
-      name: q.name,
-      query: q.query
-    }))
+  loadQueriesFromProfiles(): void {
+    this.queries = this.profiles
+      .filter((p: QueryProfile) => p.enabled)
+      .map((p: QueryProfile): QueryConfig => ({
+        name: p.name,
+        query: p.pubmedQuery
+      }))
   }
 
   computeStats(): void {
@@ -76,15 +77,10 @@ struct Index {
   }
 
   async onRunClicked(): Promise<void> {
-    if (!this.appConfig) {
-      promptAction.showToast({ message: '配置加载失败，请重启 App', duration: 3000 })
-      return
-    }
-    const cfg = this.appConfig
     const queryName = this.selectedQuery === '' ? null : this.selectedQuery
-    const targets: CfgQuery[] = queryName
-      ? cfg.queries.filter((q: CfgQuery) => q.name === queryName)
-      : cfg.queries
+    const targets: QueryProfile[] = queryName
+      ? this.profiles.filter((p: QueryProfile) => p.name === queryName)
+      : this.profiles.filter((p: QueryProfile) => p.enabled)
 
     if (targets.length === 0) {
       promptAction.showToast({ message: '没有匹配的检索策略', duration: 3000 })
@@ -97,16 +93,17 @@ struct Index {
     try {
       let allPapers: Paper[] = []
       let sourceErrors: string[] = []
-      for (const q of targets) {
+      for (const profile of targets) {
         try {
-          const batch = await fetchAll(q.query, q.sources, q.dateFrom, cfg.maxResultsPerSource, cfg.ncbiApiKey)
-          for (const p of batch) {
-            p.queryTag = q.name
-          }
-          allPapers = allPapers.concat(batch)
-          console.info(`[Index] ${q.name}: ${batch.length} papers`)
+          // Fetch PubMed + Europe PMC separately per profile
+          const pubmedBatch = await fetchAll(profile.pubmedQuery, ['pubmed'], '2020-01-01', 100)
+          const epmcBatch = await fetchAll(profile.europePmcQuery, ['europe_pmc'], '2020-01-01', 100)
+          for (const p of pubmedBatch) { p.queryTag = profile.name }
+          for (const p of epmcBatch) { p.queryTag = profile.name }
+          allPapers = allPapers.concat(pubmedBatch).concat(epmcBatch)
+          console.info(`[Index] ${profile.name}: PubMed=${pubmedBatch.length} EuropePMC=${epmcBatch.length}`)
         } catch (e) {
-          sourceErrors.push(`${q.name}: ${(e as Error).message}`)
+          sourceErrors.push(`${profile.name}: ${(e as Error).message}`)
         }
       }
 
@@ -115,16 +112,14 @@ struct Index {
       }
 
       allPapers = deduplicatePapers(allPapers)
-      allPapers = scorePapers(allPapers, cfg.scoreKeywords)
+      allPapers = scorePapers(allPapers, this.profiles.flatMap((p: QueryProfile) => p.keywords))
 
-      // Try to store to DB (non-blocking if fails)
       try {
         await upsertPapers(this.context, allPapers)
       } catch (dbErr) {
         console.error('[Index] upsertPapers failed:', (dbErr as Error).message)
       }
 
-      // Use fetched+scored papers directly for immediate display
       if (queryName) {
         this.papers = allPapers.filter((p: Paper) => p.queryTag === queryName)
       } else {

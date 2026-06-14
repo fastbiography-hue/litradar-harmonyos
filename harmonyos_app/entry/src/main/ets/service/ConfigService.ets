@@ -1,62 +1,12 @@
 // service/ConfigService.ets
+// M2-T03: 原生查询配置服务，HarmonyOS Preferences 持久化
 import dataPreferences from '@ohos.data.preferences'
 import common from '@ohos.app.ability.common'
-
-export interface QueryConfig {
-  name: string
-  query: string
-  sources: string[]
-  dateFrom: string
-  alertOnNew: boolean
-}
-
-export interface AppConfig {
-  queries: QueryConfig[]
-  scoreKeywords: string[]
-  maxResultsPerSource: number
-  ncbiApiKey: string
-  ncbiEmail: string
-  schedulerEnabled: boolean
-  schedulerTime: string
-}
+import { QueryProfile, DEFAULT_PROFILES } from '../models/QueryProfile'
 
 const PREFERENCES_NAME = 'litradar_config'
-const KEY_APP_CONFIG = 'app_config'
-
-const DEFAULT_CONFIG: AppConfig = {
-  queries: [
-    {
-      name: 'AD_APOE',
-      query: 'APOE AND Alzheimer AND (GWAS OR haplotype OR risk)',
-      sources: ['pubmed', 'europe_pmc'],
-      dateFrom: '2020-01-01',
-      alertOnNew: true
-    },
-    {
-      name: 'longread_variant',
-      query: 'long-read sequencing AND (variant calling OR haplotype phasing)',
-      sources: ['pubmed', 'europe_pmc'],
-      dateFrom: '2020-01-01',
-      alertOnNew: true
-    },
-    {
-      name: 'metabolic_genetics',
-      query: 'metabolic syndrome AND (GWAS OR polygenic risk score OR WGS)',
-      sources: ['pubmed', 'europe_pmc'],
-      dateFrom: '2020-01-01',
-      alertOnNew: false
-    }
-  ],
-  scoreKeywords: [
-    'APOE', 'Alzheimer', 'haplotype', 'long-read', 'PacBio', 'ONT',
-    'variant calling', 'polygenic risk', 'GWAS', 'WGS'
-  ],
-  maxResultsPerSource: 100,
-  ncbiApiKey: '',
-  ncbiEmail: '',
-  schedulerEnabled: false,
-  schedulerTime: '08:00'
-}
+const KEY_PROFILES = 'query_profiles'
+const KEY_INITIALIZED = 'config_initialized'
 
 let _prefs: dataPreferences.Preferences | null = null
 
@@ -67,71 +17,110 @@ async function getPrefs(context: common.Context): Promise<dataPreferences.Prefer
 }
 
 /**
- * 读取完整配置。首次启动（Preferences 无数据）时返回 DEFAULT_CONFIG，
- * 不触发自动写入。写入由 saveConfig / upsertQuery / deleteQuery 显式触发。
+ * 首次启动时写入默认 profiles。幂等，已有数据不覆盖。
  */
-export async function getConfig(context: common.Context): Promise<AppConfig> {
+export async function initDefaults(context: common.Context): Promise<void> {
   try {
     const prefs = await getPrefs(context)
-    const raw = await prefs.get(KEY_APP_CONFIG, '') as string
-    if (raw && raw !== '') {
-      const parsed = JSON.parse(raw) as AppConfig
-      return parsed
-    }
-  } catch (e) {
-    console.error('[ConfigService] getConfig failed, using defaults:', (e as Error).message)
-  }
-  return DEFAULT_CONFIG
-}
-
-/**
- * 首次启动时将 DEFAULT_CONFIG 写入 Preferences。
- * 幂等：已有数据时不覆盖。应在 Index.aboutToAppear 中调用一次。
- */
-export async function ensureDefaults(context: common.Context): Promise<void> {
-  try {
-    const prefs = await getPrefs(context)
-    const raw = await prefs.get(KEY_APP_CONFIG, '') as string
-    if (!raw || raw === '') {
-      await prefs.put(KEY_APP_CONFIG, JSON.stringify(DEFAULT_CONFIG))
+    const initialized = await prefs.get(KEY_INITIALIZED, false) as boolean
+    if (!initialized) {
+      const now = new Date().toISOString()
+      const defaults: QueryProfile[] = DEFAULT_PROFILES.map((p: QueryProfile): QueryProfile => ({
+        ...p,
+        createdAt: now,
+        updatedAt: now
+      }))
+      await prefs.put(KEY_PROFILES, JSON.stringify(defaults))
+      await prefs.put(KEY_INITIALIZED, true)
       await prefs.flush()
     }
   } catch (e) {
-    console.error('[ConfigService] ensureDefaults failed:', (e as Error).message)
+    console.error('[ConfigService] initDefaults failed:', (e as Error).message)
   }
 }
 
-export async function saveConfig(context: common.Context, config: AppConfig): Promise<void> {
+/**
+ * 读取所有 query profiles
+ */
+export async function getAllProfiles(context: common.Context): Promise<QueryProfile[]> {
   try {
     const prefs = await getPrefs(context)
-    await prefs.put(KEY_APP_CONFIG, JSON.stringify(config))
+    const raw = await prefs.get(KEY_PROFILES, '') as string
+    if (raw && raw !== '') {
+      return JSON.parse(raw) as QueryProfile[]
+    }
+  } catch (e) {
+    console.error('[ConfigService] getAllProfiles failed:', (e as Error).message)
+  }
+  return DEFAULT_PROFILES
+}
+
+/**
+ * 按 id 获取单个 profile
+ */
+export async function getProfileById(context: common.Context, id: string): Promise<QueryProfile | null> {
+  try {
+    const profiles = await getAllProfiles(context)
+    const found = profiles.find((p: QueryProfile) => p.id === id)
+    return found || null
+  } catch (e) {
+    console.error('[ConfigService] getProfileById failed:', (e as Error).message)
+    return null
+  }
+}
+
+/**
+ * 新增或更新 profile。id 已存在则更新，不存在则追加。
+ */
+export async function upsertProfile(context: common.Context, profile: QueryProfile): Promise<void> {
+  try {
+    const profiles = await getAllProfiles(context)
+    const idx = profiles.findIndex((p: QueryProfile) => p.id === profile.id)
+    profile.updatedAt = new Date().toISOString()
+    if (idx >= 0) {
+      profiles[idx] = profile
+    } else {
+      profile.createdAt = profile.createdAt || profile.updatedAt
+      profiles.push(profile)
+    }
+    const prefs = await getPrefs(context)
+    await prefs.put(KEY_PROFILES, JSON.stringify(profiles))
     await prefs.flush()
   } catch (e) {
-    console.error('[ConfigService] saveConfig failed:', (e as Error).message)
+    console.error('[ConfigService] upsertProfile failed:', (e as Error).message)
   }
 }
 
-export async function upsertQuery(context: common.Context, q: QueryConfig): Promise<void> {
+/**
+ * 删除 profile。id 不存在时 no-op。
+ */
+export async function deleteProfile(context: common.Context, id: string): Promise<void> {
   try {
-    const config = await getConfig(context)
-    const idx = config.queries.findIndex((item: QueryConfig) => item.name === q.name)
-    if (idx >= 0) {
-      config.queries[idx] = q
-    } else {
-      config.queries.push(q)
-    }
-    await saveConfig(context, config)
+    const profiles = await getAllProfiles(context)
+    const filtered = profiles.filter((p: QueryProfile) => p.id !== id)
+    const prefs = await getPrefs(context)
+    await prefs.put(KEY_PROFILES, JSON.stringify(filtered))
+    await prefs.flush()
   } catch (e) {
-    console.error('[ConfigService] upsertQuery failed:', (e as Error).message)
+    console.error('[ConfigService] deleteProfile failed:', (e as Error).message)
   }
 }
 
-export async function deleteQuery(context: common.Context, name: string): Promise<void> {
+/**
+ * 恢复默认 profiles，删除所有自定义
+ */
+export async function restoreDefaults(context: common.Context): Promise<void> {
   try {
-    const config = await getConfig(context)
-    config.queries = config.queries.filter((item: QueryConfig) => item.name !== name)
-    await saveConfig(context, config)
+    const now = new Date().toISOString()
+    const defaults: QueryProfile[] = DEFAULT_PROFILES.map((p: QueryProfile): QueryProfile => ({
+      ...p,
+      createdAt: now,
+      updatedAt: now
+    }))
+    const prefs = await getPrefs(context)
+    await prefs.put(KEY_PROFILES, JSON.stringify(defaults))
+    await prefs.flush()
   } catch (e) {
-    console.error('[ConfigService] deleteQuery failed:', (e as Error).message)
+    console.error('[ConfigService] restoreDefaults failed:', (e as Error).message)
   }
 }
