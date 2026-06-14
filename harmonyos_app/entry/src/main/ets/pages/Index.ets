@@ -9,6 +9,8 @@ import QueryPanel from './QueryPanel'
 import PaperList from './PaperList'
 import PaperDetail from './PaperDetail'
 import TopToolbar from '../components/TopToolbar'
+import SettingsPanel from '../components/SettingsPanel'
+import SearchTranslatorPanel from '../components/SearchTranslatorPanel'
 import EmptyState from '../components/common/EmptyState'
 import LoadingState from '../components/common/LoadingState'
 import ErrorState from '../components/common/ErrorState'
@@ -27,6 +29,8 @@ struct Index {
   @State isLoading: boolean = false
   @State stats: StatsInfo = { total: 0, oa: 0, downloaded: 0, highRelevance: 0 }
   @State fetchError: string = ''
+  @State showSettings: boolean = false
+  @State showAiSearch: boolean = false
 
   private context: common.UIAbilityContext = getContext(this) as common.UIAbilityContext
   private profiles: QueryProfile[] = []
@@ -110,7 +114,9 @@ struct Index {
       TopToolbar({
         statsTotal: this.stats.total, statsOA: this.stats.oa, statsHigh: this.stats.highRelevance,
         isLoading: this.isLoading, onRunClick: () => this.onRunClicked(),
-        onSearch: (q: string) => this.onSearch(q)
+        onSearch: (q: string) => this.onSearch(q),
+        onAiSearch: () => { this.showAiSearch = !this.showAiSearch },
+        onSettings: () => { this.showSettings = !this.showSettings }
       })
       Row() {
         QueryPanel({ queries: $queries, selectedQuery: $selectedQuery, onQuerySelected: (n: string) => this.onQuerySelected(n) })
@@ -129,5 +135,33 @@ struct Index {
         }.flexGrow(1).height('100%')
       }.width('100%').flexGrow(1)
     }.width('100%').height('100%').backgroundColor('#FFFFFF')
+
+    // Overlay: Settings modal
+    if (this.showSettings) {
+      Stack() {
+        Column().width('100%').height('100%').backgroundColor('#00000044')
+          .onClick(() => { this.showSettings = false })
+        Column() {
+          SettingsPanel()
+        }
+        .width(480).height('80%').backgroundColor('#FFFFFF').borderRadius(8)
+        .position({ x: '50%', y: '10%' }).translate({ x: '-50%', y: 0 })
+      }
+      .width('100%').height('100%').position({ x: 0, y: 0 })
+    }
+
+    // Overlay: AI search translator
+    if (this.showAiSearch) {
+      Stack() {
+        Column().width('100%').height('100%').backgroundColor('#00000044')
+          .onClick(() => { this.showAiSearch = false })
+        Column() {
+          SearchTranslatorPanel()
+        }
+        .width(520).height('70%').backgroundColor('#FFFFFF').borderRadius(8)
+        .position({ x: '50%', y: '15%' }).translate({ x: '-50%', y: 0 })
+      }
+      .width('100%').height('100%').position({ x: 0, y: 0 })
+    }
   }
 }
