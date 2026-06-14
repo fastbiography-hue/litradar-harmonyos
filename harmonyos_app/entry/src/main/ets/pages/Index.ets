@@ -11,6 +11,7 @@ import PaperDetail from './PaperDetail'
 import TopToolbar from '../components/TopToolbar'
 import SettingsPanel from '../components/SettingsPanel'
 import SearchTranslatorPanel from '../components/SearchTranslatorPanel'
+import CollectionsPanel from '../components/CollectionsPanel'
 import EmptyState from '../components/common/EmptyState'
 import LoadingState from '../components/common/LoadingState'
 import ErrorState from '../components/common/ErrorState'
@@ -31,6 +32,7 @@ struct Index {
   @State fetchError: string = ''
   @State showSettings: boolean = false
   @State showAiSearch: boolean = false
+  @State showNotes: boolean = false
 
   private context: common.UIAbilityContext = getContext(this) as common.UIAbilityContext
   private profiles: QueryProfile[] = []
@@ -116,11 +118,15 @@ struct Index {
         isLoading: this.isLoading, onRunClick: () => this.onRunClicked(),
         onSearch: (q: string) => this.onSearch(q),
         onAiSearch: () => { this.showAiSearch = !this.showAiSearch },
+        onNotes: () => { this.showNotes = !this.showNotes },
         onSettings: () => { this.showSettings = !this.showSettings }
       })
       Row() {
-        QueryPanel({ queries: $queries, selectedQuery: $selectedQuery, onQuerySelected: (n: string) => this.onQuerySelected(n) })
-          .width(220).height('100%')
+        Column() {
+          QueryPanel({ queries: $queries, selectedQuery: $selectedQuery, onQuerySelected: (n: string) => this.onQuerySelected(n) })
+          CollectionsPanel({ onCollectionSelected: (name: string) => this.onQuerySelected(name) })
+        }
+        .width(220).height('100%')
         Divider().vertical(true).strokeWidth(1).color('#E0E0E0')
         Column() {
           if (this.isLoading) { LoadingState({ message: '正在抓取...' }) }
@@ -146,6 +152,30 @@ struct Index {
         }
         .width(480).height('80%').backgroundColor('#FFFFFF').borderRadius(8)
         .position({ x: '50%', y: '10%' }).translate({ x: '-50%', y: 0 })
+      }
+      .width('100%').height('100%').position({ x: 0, y: 0 })
+    }
+
+    // Overlay: Notes editor
+    if (this.showNotes) {
+      Stack() {
+        Column().width('100%').height('100%').backgroundColor('#00000044')
+          .onClick(() => { this.showNotes = false })
+        Column() {
+          Scroll() {
+            Column() {
+              Text('📒 知识笔记').fontSize(16).fontWeight(FontWeight.Bold).margin({ bottom: 12 })
+              TextArea({ placeholder: '使用 [[双向链接]] 引用文献...', text: '' })
+                .height(200).fontSize(13).margin({ bottom: 12 })
+                .backgroundColor('#F5F5F5').borderRadius(4)
+              Button('保存笔记').width('100%').height(36).fontSize(14)
+                .backgroundColor('#2F5496').fontColor(Color.White).borderRadius(6)
+                .onClick(() => { this.showNotes = false })
+            }.padding(20).width('100%').alignItems(HorizontalAlign.Start)
+          }
+        }
+        .width(400).height('70%').backgroundColor('#FFFFFF').borderRadius(8)
+        .position({ x: '50%', y: '15%' }).translate({ x: '-50%', y: 0 })
       }
       .width('100%').height('100%').position({ x: 0, y: 0 })
     }

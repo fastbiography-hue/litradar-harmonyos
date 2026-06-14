@@ -10,6 +10,7 @@ export default struct TopToolbar {
   onRunClick: () => void = () => {}
   onSearch: (query: string) => void = () => {}
   onAiSearch: () => void = () => {}
+  onNotes: () => void = () => {}
   onSettings: () => void = () => {}
   @State searchText: string = ''
 
@@ -35,6 +36,10 @@ export default struct TopToolbar {
       Button('AI 检索').height(32).margin({ left: 8 }).fontSize(12)
         .backgroundColor('#722ED1').fontColor(Color.White).borderRadius(4)
         .onClick(() => { if (this.onAiSearch) this.onAiSearch() })
+
+      Button('📒').height(32).margin({ left: 6 }).fontSize(14)
+        .backgroundColor(Color.Transparent).fontColor('#666')
+        .onClick(() => { if (this.onNotes) this.onNotes() })
 
       Blank()
 
