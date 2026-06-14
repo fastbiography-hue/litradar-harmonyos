@@ -21,7 +21,7 @@ M2-T03 → M2-T02 → M2-T04
 
 | 任务 | 名称 | 状态 |
 |------|------|:--:|
-| M3-T01 | AiService 可插拔 AI 接口 | pending |
+| M3-T01 | AiService 可插拔 AI 接口 | completed |
 | M3-T02 | ChineseSearchTranslator AI 检索式生成 | pending |
 | M3-T03 | AiAbstractParser AI 摘要解析 | pending |
 | M3-T04 | CitationExport 12 种引用格式 | pending |
