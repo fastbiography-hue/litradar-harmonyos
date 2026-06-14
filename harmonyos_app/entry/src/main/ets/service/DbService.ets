@@ -37,7 +37,7 @@ const CREATE_TABLE_SQL = `
 
 let _store: relationalStore.RdbStore | null = null
 
-export async function getDb(context: common.UIAbilityContext): Promise<relationalStore.RdbStore | null> {
+export async function getDb(context: common.Context): Promise<relationalStore.RdbStore | null> {
   if (_store) return _store
   try {
     _store = await relationalStore.getRdbStore(context, STORE_CONFIG)
@@ -49,7 +49,7 @@ export async function getDb(context: common.UIAbilityContext): Promise<relationa
   }
 }
 
-export async function upsertPapers(context: common.UIAbilityContext, papers: Paper[]): Promise<void> {
+export async function upsertPapers(context: common.Context, papers: Paper[]): Promise<void> {
   try {
     const db = await getDb(context)
     if (!db) {
@@ -92,7 +92,7 @@ export async function upsertPapers(context: common.UIAbilityContext, papers: Pap
 }
 
 export async function queryPapers(
-  context: common.UIAbilityContext,
+  context: common.Context,
   queryTag: string | null = null,
   limit: number = 200
 ): Promise<Paper[]> {
@@ -102,10 +102,10 @@ export async function queryPapers(
       return []
     }
     const predicates = new relationalStore.RdbPredicates('papers')
-    if (queryTag) {
-      predicates.equalTo('"Query Tag"', queryTag)
+    if (queryTag && queryTag !== '') {
+      predicates.equalTo('Query Tag', queryTag)
     }
-    predicates.orderByDesc('"Relevance Score"')
+    predicates.orderByDesc('Relevance Score')
     predicates.limitAs(limit)
     const cursor = await db.query(predicates)
     const result: Paper[] = []
@@ -146,3 +146,6 @@ export async function queryPapers(
     return []
   }
 }
+
+// Alias for Worker (WorkSchedulerExtensionAbility) compatibility
+export { upsertPapers as upsertPapersDB }

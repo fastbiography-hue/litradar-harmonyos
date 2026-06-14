@@ -1,12 +1,22 @@
-// pages/Index.ets
-import { Paper, QueryConfig, StatsInfo, AppState } from '../model/PaperModel'
-import { fetchPapers, fetchQueries, fetchStats, checkHealth, triggerRun } from '../service/ApiService'
+// pages/Index.ets — M2: 纯原生引擎，不依赖 Python 后端
+import { Paper, QueryConfig, AppState } from '../model/PaperModel'
 import { upsertPapers, queryPapers } from '../service/DbService'
+import { getConfig } from '../service/ConfigService'
+import type { AppConfig, QueryConfig as CfgQuery } from '../service/ConfigService'
+import { fetchAll } from '../engine/FetchEngine'
+import { deduplicatePapers, scorePapers } from '../engine/ScoreEngine'
 import QueryPanel from './QueryPanel'
 import PaperList from './PaperList'
 import PaperDetail from './PaperDetail'
 import common from '@ohos.app.ability.common'
 import promptAction from '@ohos.promptAction'
+
+interface StatsInfo {
+  total: number
+  oa: number
+  downloaded: number
+  highRelevance: number
+}
 
 @Entry
 @Component
@@ -17,75 +27,112 @@ struct Index {
   @State selectedPaper: Paper | null = null
   @State isLoading: boolean = false
   @State stats: StatsInfo = { total: 0, oa: 0, downloaded: 0, highRelevance: 0 }
-  @State backendOnline: boolean = false
 
   private context: common.UIAbilityContext = getContext(this) as common.UIAbilityContext
+  private appConfig: AppConfig | null = null
 
   async aboutToAppear(): Promise<void> {
     try {
-      this.backendOnline = await checkHealth()
-      if (this.backendOnline) {
-        await this.loadQueries()
-        await this.loadPapers(null)
-        await this.loadStats()
-      } else {
-        this.papers = await queryPapers(this.context, null, 200)
-        promptAction.showToast({ message: '后端离线，显示本地缓存数据', duration: 3000 })
-      }
+      this.appConfig = await getConfig(this.context)
+      this.loadQueriesFromConfig()
+      this.papers = await queryPapers(this.context, null, 200)
+      this.computeStats()
     } catch (e) {
       console.error('[Index] aboutToAppear failed:', (e as Error).message)
     }
   }
 
-  async loadQueries(): Promise<void> {
-    try {
-      this.queries = await fetchQueries()
-    } catch (e) {
-      console.error('[Index] loadQueries failed:', (e as Error).message)
-    }
+  loadQueriesFromConfig(): void {
+    if (!this.appConfig) return
+    this.queries = this.appConfig.queries.map((q: CfgQuery): QueryConfig => ({
+      name: q.name,
+      query: q.query
+    }))
   }
 
-  async loadPapers(queryName: string | null): Promise<void> {
-    this.isLoading = true
-    try {
-      const remote: Paper[] = await fetchPapers(queryName, 200)
-      await upsertPapers(this.context, remote)
-      this.papers = remote
-    } catch (e) {
-      this.papers = await queryPapers(this.context, queryName, 200)
-      promptAction.showToast({ message: '从本地缓存加载', duration: 2000 })
-    } finally {
-      this.isLoading = false
+  computeStats(): void {
+    let oa = 0
+    let high = 0
+    for (const p of this.papers) {
+      if (p.isOA === 'Yes') oa++
+      if (p.relevanceScore >= 7) high++
     }
-  }
-
-  async loadStats(): Promise<void> {
-    try {
-      this.stats = await fetchStats()
-    } catch (e) {
-      console.error('[Index] loadStats failed:', (e as Error).message)
-    }
+    this.stats = { total: this.papers.length, oa: oa, downloaded: 0, highRelevance: high }
   }
 
   async onQuerySelected(queryName: string): Promise<void> {
     this.selectedQuery = queryName
     this.selectedPaper = null
-    await this.loadPapers(queryName === '' ? null : queryName)
+    this.isLoading = true
+    try {
+      this.papers = await queryPapers(this.context, queryName === '' ? null : queryName, 200)
+    } catch (e) {
+      console.error('[Index] onQuerySelected failed:', (e as Error).message)
+    } finally {
+      this.isLoading = false
+      this.computeStats()
+    }
   }
 
   async onRunClicked(): Promise<void> {
-    if (!this.backendOnline) {
-      promptAction.showToast({ message: '后端未启动，请先运行 python litradar.py serve', duration: 4000 })
+    if (!this.appConfig) {
+      promptAction.showToast({ message: '配置加载失败，请重启 App', duration: 3000 })
       return
     }
+    const cfg = this.appConfig
+    const queryName = this.selectedQuery === '' ? null : this.selectedQuery
+    const targets: CfgQuery[] = queryName
+      ? cfg.queries.filter((q: CfgQuery) => q.name === queryName)
+      : cfg.queries
+
+    if (targets.length === 0) {
+      promptAction.showToast({ message: '没有匹配的检索策略', duration: 3000 })
+      return
+    }
+
     this.isLoading = true
     promptAction.showToast({ message: '正在抓取文献，约需 30-120 秒...', duration: 5000 })
+
     try {
-      const result = await triggerRun(this.selectedQuery === '' ? null : this.selectedQuery)
-      await this.loadPapers(this.selectedQuery === '' ? null : this.selectedQuery)
-      await this.loadStats()
+      let allPapers: Paper[] = []
+      let sourceErrors: string[] = []
+      for (const q of targets) {
+        try {
+          const batch = await fetchAll(q.query, q.sources, q.dateFrom, cfg.maxResultsPerSource, cfg.ncbiApiKey)
+          for (const p of batch) {
+            p.queryTag = q.name
+          }
+          allPapers = allPapers.concat(batch)
+          console.info(`[Index] ${q.name}: ${batch.length} papers`)
+        } catch (e) {
+          sourceErrors.push(`${q.name}: ${(e as Error).message}`)
+        }
+      }
+
+      if (allPapers.length === 0 && sourceErrors.length > 0) {
+        promptAction.showToast({ message: `网络请求失败: ${sourceErrors[0]}`, duration: 5000 })
+      }
+
+      allPapers = deduplicatePapers(allPapers)
+      allPapers = scorePapers(allPapers, cfg.scoreKeywords)
+
+      // Try to store to DB (non-blocking if fails)
+      try {
+        await upsertPapers(this.context, allPapers)
+      } catch (dbErr) {
+        console.error('[Index] upsertPapers failed:', (dbErr as Error).message)
+      }
+
+      // Use fetched+scored papers directly for immediate display
+      if (queryName) {
+        this.papers = allPapers.filter((p: Paper) => p.queryTag === queryName)
+      } else {
+        this.papers = allPapers
+      }
+      this.computeStats()
+
       promptAction.showToast({
-        message: `完成：发现 ${result.found} 篇，新增 ${result.saved} 篇`,
+        message: `完成：发现 ${allPapers.length} 篇`,
         duration: 4000
       })
     } catch (e) {
@@ -109,15 +156,6 @@ struct Index {
         Text(`共 ${this.stats.total} 篇 | OA: ${this.stats.oa} | 高分: ${this.stats.highRelevance}`)
           .fontSize(13)
           .fontColor('#666666')
-          .margin({ right: 16 })
-
-        Circle({ width: 10, height: 10 })
-          .fill(this.backendOnline ? '#52C41A' : '#FF4D4F')
-          .margin({ right: 8 })
-
-        Text(this.backendOnline ? '后端在线' : '后端离线')
-          .fontSize(12)
-          .fontColor(this.backendOnline ? '#52C41A' : '#FF4D4F')
           .margin({ right: 16 })
 
         Button(this.isLoading ? '抓取中...' : '立即抓取')

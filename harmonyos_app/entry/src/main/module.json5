@@ -28,6 +28,14 @@
     ],
     "requestPermissions": [
       { "name": "ohos.permission.INTERNET" }
+    ],
+    "extensionAbilities": [
+      {
+        "name": "LitRadarWorker",
+        "srcEntry": "./ets/worker/LitRadarWorker.ets",
+        "type": "workScheduler",
+        "description": "LitRadar daily fetch worker"
+      }
     ]
   }
 }
