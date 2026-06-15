@@ -143,25 +143,28 @@ struct Index {
       }.width('100%').flexGrow(1)
     }.width('100%').height('100%')
 
-    // Overlays
+    // Overlays — Stack prevents click-through
     if (this.showSettings) {
-      Column() { Column() { SettingsPanel() }.width(640).backgroundColor('#FFFFFF').borderRadius(12) }
-      .width('100%').height('100%').backgroundColor('#00000044')
-      .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
-      .onClick(() => { this.showSettings = false })
+      Stack() {
+        Column().width('100%').height('100%').backgroundColor('#00000044').onClick(() => { this.showSettings = false })
+        Column() { SettingsPanel() }.width(640).backgroundColor('#FFFFFF').borderRadius(12)
+      }.width('100%').height('100%').alignContent(Alignment.Center)
     }
     if (this.showAiSearch) {
-      Column() { Column() { SearchTranslatorPanel() }.width(640).backgroundColor('#FFFFFF').borderRadius(12) }
-      .width('100%').height('100%').backgroundColor('#00000044')
-      .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
-      .onClick(() => { this.showAiSearch = false })
+      Stack() {
+        Column().width('100%').height('100%').backgroundColor('#00000044').onClick(() => { this.showAiSearch = false })
+        Column() { SearchTranslatorPanel() }.width(720).backgroundColor('#FFFFFF').borderRadius(12)
+      }.width('100%').height('100%').alignContent(Alignment.Center)
     }
     if (this.showNotes) {
-      Column() {
-        Scroll() { Column() { Text('📒 知识笔记').fontSize(16).fontWeight(FontWeight.Bold).margin({ bottom: 12 }); TextArea({ placeholder: '使用 [[双向链接]] 引用文献...', text: '' }).height(200).fontSize(13).margin({ bottom: 12 }).backgroundColor('#F5F7FA').borderRadius(6); Button('保存').width('100%').height(36).fontSize(14).backgroundColor('#2F5496').fontColor('#FFF').borderRadius(6).onClick(() => { this.showNotes = false }) }.padding(24).width('100%').alignItems(HorizontalAlign.Start) }.width(400).backgroundColor('#FFF').borderRadius(12)
-      }.width('100%').height('100%').backgroundColor('#00000044')
-      .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
-      .onClick(() => { this.showNotes = false })
+      Stack() {
+        Column().width('100%').height('100%').backgroundColor('#00000044').onClick(() => { this.showNotes = false })
+        Column() {
+          Row() { Text('📒 知识笔记').fontSize(16).fontWeight(FontWeight.Bold).flexGrow(1); Button('✕').fontSize(16).height(28).width(28).backgroundColor(Color.Transparent).fontColor('#999').onClick(() => { this.showNotes = false }) }.width('100%').margin({ bottom: 12 })
+          TextArea({ placeholder: '使用 [[双向链接]] 引用文献...', text: '' }).height(200).fontSize(13).margin({ bottom: 12 }).backgroundColor('#F5F7FA').borderRadius(6)
+          Button('保存').width('100%').height(36).fontSize(14).backgroundColor('#2F5496').fontColor('#FFF').borderRadius(6).onClick(() => { this.showNotes = false })
+        }.padding(24).width(400).backgroundColor('#FFF').borderRadius(12)
+      }.width('100%').height('100%').alignContent(Alignment.Center)
     }
     }.width('100%').height('100%')
   }

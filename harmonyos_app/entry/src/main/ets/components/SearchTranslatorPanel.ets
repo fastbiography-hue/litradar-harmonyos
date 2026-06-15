@@ -1,85 +1,80 @@
-// components/SearchTranslatorPanel.ets
-// M3-T02: AI 检索式翻译面板 — 输入中文，输出结构化检索参数
+// components/SearchTranslatorPanel.ets — AI 检索式生成 (左右布局)
 import { translateSearch } from '../engines/SearchTranslator'
 import { SearchTranslationResult } from '../models/SearchTranslationModel'
 import promptAction from '@ohos.promptAction'
 
 @Component
 export default struct SearchTranslatorPanel {
-  @State inputText: string = ''
+  @State input: string = ''
   @State result: SearchTranslationResult | null = null
   @State isLoading: boolean = false
 
   async onTranslate(): Promise<void> {
-    if (!this.inputText || this.inputText.trim() === '') {
-      promptAction.showToast({ message: '请输入中文科研问题', duration: 2000 })
-      return
-    }
+    if (!this.input.trim()) { promptAction.showToast({ message: '请输入中文科研问题', duration: 2000 }); return }
     this.isLoading = true
     try {
-      this.result = await translateSearch(this.inputText)
-      if (this.result && this.result.warnings.length > 0) {
-        promptAction.showToast({ message: this.result.warnings[0], duration: 3000 })
-      }
-    } catch (e) {
-      promptAction.showToast({ message: `翻译失败: ${(e as Error).message}`, duration: 3000 })
-    } finally {
-      this.isLoading = false
-    }
+      this.result = await translateSearch(this.input)
+    } catch (e) { promptAction.showToast({ message: `失败: ${(e as Error).message}`, duration: 3000 }) }
+    finally { this.isLoading = false }
   }
 
   build() {
     Column() {
-      Text('AI 检索式生成')
-        .fontSize(14)
-        .fontWeight(FontWeight.Bold)
-        .padding({ left: 16, top: 12, bottom: 8 })
-        .width('100%')
+      Row() { Text('AI 检索式生成').fontSize(16).fontWeight(FontWeight.Bold).flexGrow(1) }.width('100%').margin({ bottom: 12 })
 
-      TextArea({ placeholder: '输入中文科研问题，例如：\n长读长测序 单倍型分型 阿尔茨海默病 APOE风险' })
-        .height(80)
-        .margin({ left: 16, right: 16, bottom: 8 })
-        .onChange((value: string) => { this.inputText = value })
+      Row() {
+        // Left: input
+        Column() {
+          Text('中文科研问题').fontSize(12).fontColor('#888').margin({ bottom: 6 }).width('100%')
+          TextArea({ placeholder: '示例：长读长测序 单倍型分型 阿尔茨海默病 APOE风险', text: this.input })
+            .height(120).fontSize(13).margin({ bottom: 8 }).backgroundColor('#F5F7FA').borderRadius(6)
+            .onChange((v: string) => { this.input = v })
+          Button(this.isLoading ? '生成中...' : '生成检索式').height(36).fontSize(13)
+            .enabled(!this.isLoading).backgroundColor('#2F5496').fontColor('#FFF').borderRadius(6).width('100%')
+            .onClick(() => this.onTranslate())
+        }.width('48%').padding({ right: 8 })
 
-      Button(this.isLoading ? '生成中...' : '生成检索式')
-        .enabled(!this.isLoading)
-        .backgroundColor('#2F5496')
-        .fontColor(Color.White)
-        .height(32)
-        .margin({ left: 16, right: 16, bottom: 12 })
-        .onClick(() => this.onTranslate())
+        Divider().vertical(true).strokeWidth(1).color('#E0E0E0').height(280)
 
-      if (this.result) {
-        Scroll() {
-          Column() {
-            if (this.result.englishKeywords.length > 0) {
-              Text('英文关键词: ' + this.result.englishKeywords.join(', '))
-                .fontSize(12).padding(4)
-            }
-            if (this.result.meshTerms.length > 0) {
-              Text('MeSH: ' + this.result.meshTerms.join('; '))
-                .fontSize(12).padding(4)
-            }
-            if (this.result.pubmedQuery !== '') {
-              Text('PubMed: ' + this.result.pubmedQuery)
-                .fontSize(11).padding(4).fontColor('#333')
-            }
-            if (this.result.europePmcQuery !== '') {
-              Text('Europe PMC: ' + this.result.europePmcQuery)
-                .fontSize(11).padding(4).fontColor('#333')
-            }
-            if (this.result.explanation !== '') {
-              Text('解释: ' + this.result.explanation)
-                .fontSize(11).padding(4).fontColor('#666')
+        // Right: result
+        Column() {
+          if (!this.result) {
+            Text('生成结果将显示在这里').fontSize(13).fontColor('#CCC').margin({ top: 40 })
+          } else if (this.result.warnings.length > 0) {
+            Text(this.result.warnings[0]).fontSize(12).fontColor('#FF4D4F').margin({ top: 20 })
+          } else {
+            Scroll() {
+              Column() {
+                if (this.result.englishKeywords.length > 0) {
+                  Text('英文关键词').fontSize(11).fontColor('#888').fontWeight(FontWeight.Bold).margin({ bottom: 4 })
+                  Text(this.result.englishKeywords.join(', ')).fontSize(12).fontColor('#333').margin({ bottom: 10 })
+                }
+                if (this.result.meshTerms.length > 0) {
+                  Text('MeSH Terms').fontSize(11).fontColor('#888').fontWeight(FontWeight.Bold).margin({ bottom: 4 })
+                  Text(this.result.meshTerms.join('; ')).fontSize(12).fontColor('#333').margin({ bottom: 10 })
+                }
+                if (this.result.pubmedQuery) {
+                  Text('PubMed').fontSize(11).fontColor('#888').fontWeight(FontWeight.Bold).margin({ bottom: 4 })
+                  Text(this.result.pubmedQuery).fontSize(11).fontColor('#333').fontFamily('monospace').padding(8).backgroundColor('#F5F7FA').borderRadius(4).width('100%').margin({ bottom: 10 })
+                }
+                if (this.result.europePmcQuery) {
+                  Text('Europe PMC').fontSize(11).fontColor('#888').fontWeight(FontWeight.Bold).margin({ bottom: 4 })
+                  Text(this.result.europePmcQuery).fontSize(11).fontColor('#333').fontFamily('monospace').padding(8).backgroundColor('#F5F7FA').borderRadius(4).width('100%').margin({ bottom: 10 })
+                }
+                if (this.result.explanation) {
+                  Text('解释').fontSize(11).fontColor('#888').fontWeight(FontWeight.Bold).margin({ bottom: 4 })
+                  Text(this.result.explanation).fontSize(12).fontColor('#666').margin({ bottom: 10 })
+                }
+
+                Divider().strokeWidth(1).color('#EEE').margin({ top: 4, bottom: 8 })
+                Button('保存为检索策略').height(32).fontSize(12).backgroundColor('#F5F5F5').fontColor('#AAA').borderRadius(6).width('100%')
+                  .enabled(false)
+                Text('保存功能下一版支持').fontSize(10).fontColor('#CCC').textAlign(TextAlign.Center).margin({ top: 4 })
+              }.width('100%').alignItems(HorizontalAlign.Start)
             }
           }
-          .width('100%')
-          .padding(12)
-          .alignItems(HorizontalAlign.Start)
-        }
-        .height(200)
-      }
-    }
-    .width('100%')
+        }.width('48%').padding({ left: 8 })
+      }.width('100%').height(320)
+    }.padding(24).width('100%')
   }
 }
